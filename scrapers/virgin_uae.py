@@ -32,7 +32,6 @@ class VirginScraper(BaseScraper):
 
     def _parse_search(self, soup, url, product_name, html):
         """Parse Virgin search results."""
-        # Look for product grid items
         product_cards = (
             soup.select('.product-item') or
             soup.select('.product-card') or
@@ -43,7 +42,6 @@ class VirginScraper(BaseScraper):
         page_text = soup.get_text(' ', strip=True)
 
         if not product_cards:
-            # Check for no-results message
             lower = page_text.lower()
             if 'no results' in lower or 'no products' in lower or '0 results' in lower:
                 return ScrapingResult(
@@ -52,12 +50,10 @@ class VirginScraper(BaseScraper):
                     url=url
                 )
 
-            # Try to find embedded JSON data (many modern sites use this)
             scripts = soup.find_all('script')
             for script in scripts:
                 if script.string and ('product' in (script.string or '').lower()):
                     try:
-                        # Look for JSON-LD or embedded catalog data
                         if 'application/ld+json' in str(script):
                             data = json.loads(script.string)
                             return self._parse_json_ld(data, url)
@@ -70,34 +66,28 @@ class VirginScraper(BaseScraper):
                 url=url
             )
 
-        # Parse product cards
         for card in product_cards[:5]:
             card_text = card.get_text(' ', strip=True)
             card_lower = card_text.lower()
 
-            # Title
             title_el = card.select_one('a[title]') or card.select_one('h2') or card.select_one('h3')
             title = (title_el.get('title') or title_el.get_text(strip=True)) if title_el else ''
 
-            # Relevance check
             if product_name and not self._is_relevant(title, product_name):
                 continue
 
-            # Price
             price = None
             price_el = (card.select_one('.price') or card.select_one('[class*="price"]')
                         or card.select_one('.amount'))
             if price_el:
                 price = self.parse_price(price_el.get_text())
 
-            # Stock signals
             indicators = {
                 'add_to_cart': 'add to cart' in card_lower or 'add to bag' in card_lower,
                 'out_of_stock_text': 'out of stock' in card_lower or 'sold out' in card_lower,
                 'price_visible': price is not None,
             }
 
-            # Check for store availability indicator
             store_check = (
                 'check availability' in card_lower or
                 'check in store' in card_lower or
@@ -135,11 +125,9 @@ class VirginScraper(BaseScraper):
         page_text = soup.get_text(' ', strip=True)
         lower = page_text.lower()
 
-        # Title
         title_el = soup.select_one('h1') or soup.select_one('.product-title')
         title = title_el.get_text(strip=True) if title_el else ''
 
-        # Price
         price = None
         price_selectors = [
             '.product-price', '.price-box .price', '[class*="price"] .amount',
@@ -153,7 +141,6 @@ class VirginScraper(BaseScraper):
                     indicators['price_visible'] = True
                     break
 
-        # Stock indicators
         if 'add to cart' in lower or 'add to bag' in lower:
             indicators['add_to_cart'] = True
         if 'buy now' in lower:
@@ -165,10 +152,8 @@ class VirginScraper(BaseScraper):
         if 'limited stock' in lower or 'few left' in lower:
             indicators['limited_stock'] = True
 
-        # CRITICAL: Store availability check (Virgin's unique feature)
         store_availability = self._check_store_availability(soup, lower)
 
-        # Seller
         seller = None
         seller_el = soup.select_one('[itemprop="brand"]') or soup.select_one('.brand-name')
         if seller_el:
@@ -185,16 +170,12 @@ class VirginScraper(BaseScraper):
         )
 
     def _check_store_availability(self, soup, page_text_lower):
-        """
-        Check for Virgin's in-store availability feature.
-        This is a key differentiator - Virgin shows "Check availability in store"
-        """
+        """Check for Virgin's in-store availability feature."""
         availability = {
             'has_store_check': False,
             'stores': [],
         }
 
-        # Look for store availability section
         store_check_indicators = [
             'check availability in store',
             'check store availability',
@@ -209,7 +190,6 @@ class VirginScraper(BaseScraper):
                 availability['has_store_check'] = True
                 break
 
-        # Try to find specific store data
         store_sections = (
             soup.select('.store-availability') or
             soup.select('[class*="store-check"]') or
@@ -218,7 +198,6 @@ class VirginScraper(BaseScraper):
 
         for section in store_sections:
             section_text = section.get_text(' ', strip=True)
-            # Extract store names and their status
             store_items = section.select('li') or section.select('.store-item')
             for item in store_items:
                 item_text = item.get_text(' ', strip=True)
@@ -268,4 +247,4 @@ class VirginScraper(BaseScraper):
         title_lower = title.lower()
         keywords = [w for w in product_name.lower().split() if len(w) > 2]
         matches = sum(1 for kw in keywords if kw in title_lower)
-          return matches >= max(1, len(keywords) * 0.4)
+        return matches >= max(1, len(keywords) * 0.4)
