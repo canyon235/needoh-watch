@@ -41,52 +41,27 @@ class NoonScraper(BaseScraper):
     def __init__(self):
         super().__init__()
         self.api_base = "https://www.noon.com/_svc/catalog/api/v3/u/"
-        # Track if Noon is reachable — avoid wasting 24s per product if blocked
-        self._noon_reachable = True
-        self._last_reachability_check = 0
-        self._consecutive_failures = 0
 
     def check_stock(self, url, product_name=None):
-        """Check stock on Noon UAE. Fails fast if Noon is blocking us."""
-
-        # If Noon has been unreachable for many checks, skip with fast failure
-        # Re-test every 10 minutes (600s) in case it comes back
-        if not self._noon_reachable:
-            elapsed = time.time() - self._last_reachability_check
-            if elapsed < 600:  # Skip for 10 minutes
-                return ScrapingResult(
-                    status='UNKNOWN',
-                    error='Noon blocked from this server (retrying in 10min)',
-                    url=url
-                )
-            else:
-                # Time to retry
-                self._noon_reachable = True
-                self._consecutive_failures = 0
-
-        # Try mobile API (fastest, most data)
+        """Check stock on Noon UAE.
+        Tries mobile API first, then web API.
+        If both fail, returns UNKNOWN so the checker can retry with Playwright.
+        """
         if 'search' in url or 'q=' in url:
+            # Try mobile API first (most data)
             result = self._mobile_api_search(url, product_name)
             if result and result.status != 'UNKNOWN':
-                self._consecutive_failures = 0
                 return result
 
-            # If mobile API timed out, try web API (different headers)
+            # Try web API as fallback
             result = self._web_api_search(url, product_name)
             if result and result.status != 'UNKNOWN':
-                self._consecutive_failures = 0
                 return result
 
-            # Both APIs failed — mark as unreachable after 3 consecutive failures
-            self._consecutive_failures += 1
-            if self._consecutive_failures >= 3:
-                self._noon_reachable = False
-                self._last_reachability_check = time.time()
-                print(f"    ⚠ Noon appears blocked from this server — skipping for 10 min", flush=True)
-
+            # Both APIs failed — return UNKNOWN so Playwright can try
             return ScrapingResult(
                 status='UNKNOWN',
-                error='Noon API unreachable (timeout)',
+                error='Noon APIs timed out — Playwright will retry',
                 url=url
             )
 
@@ -96,7 +71,7 @@ class NoonScraper(BaseScraper):
 
         return ScrapingResult(
             status='UNKNOWN',
-            error='Noon unreachable',
+            error='Noon API unreachable',
             url=url
         )
 

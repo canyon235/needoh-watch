@@ -48,7 +48,7 @@ class StockChecker:
 
     def run_check_cycle(self):
         """Run one complete check cycle for all due listings.
-        Prioritizes fast stores (Amazon, Noon) first so dashboard updates quickly.
+        Amazon checked first (fast HTTP), then all other stores with Playwright fallback.
         """
         listings = get_listings_due_for_check()
 
@@ -57,20 +57,21 @@ class StockChecker:
 
         timestamp = datetime.utcnow().strftime('%H:%M:%S')
 
-        # Separate fast (HTTP-only) vs slow (needs Playwright) stores
-        fast = [l for l in listings if l['store_name'] in ('Amazon.ae', 'Noon')]
-        slow = [l for l in listings if l['store_name'] not in ('Amazon.ae', 'Noon')]
+        # Amazon.ae is the only store that works reliably via plain HTTP
+        # Noon, Desertcart, Trendyol all need Playwright fallback
+        amazon = [l for l in listings if l['store_name'] == 'Amazon.ae']
+        others = [l for l in listings if l['store_name'] != 'Amazon.ae']
 
         print(f"\n[{timestamp}] Checking {len(listings)} listings "
-              f"({len(fast)} fast + {len(slow)} slow)...", flush=True)
+              f"({len(amazon)} Amazon + {len(others)} other stores)...", flush=True)
 
-        # Check fast stores first (Amazon API + Noon mobile API = ~1-3s each)
-        for listing in fast:
+        # Check Amazon first (fast HTTP scraping, ~1-3s each)
+        for listing in amazon:
             self._check_one(listing, use_playwright=False)
             time.sleep(0.5)
 
-        # Then slow stores (Desertcart/Trendyol - may need Playwright)
-        for listing in slow:
+        # Then check Noon, Desertcart, Trendyol — all use Playwright fallback
+        for listing in others:
             self._check_one(listing, use_playwright=True)
             time.sleep(0.5)
 
