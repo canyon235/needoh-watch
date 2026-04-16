@@ -107,7 +107,8 @@ class StockChecker:
                 price=result.price,
                 raw_text=result.raw_text,
                 seller=result.seller,
-                error=result.error
+                error=result.error,
+                product_url=result.url
             )
 
             # Log the check

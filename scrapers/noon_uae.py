@@ -128,22 +128,15 @@ class NoonScraper(BaseScraper):
                         'price': actual_price,
                         'is_buyable': is_buyable,
                         'stock_text': stock_text,
-                        'product_url': product_url,
                     }),
-                    url=url
+                    url=product_url or url  # Use specific product URL when available
                 )
 
-            # Had results but none matched the product name
-            # Return first result anyway (better than nothing)
-            first = hits[0]
-            first_title = first.get('name', '') or first.get('title', '')
-            first_price = first.get('sale_price') or first.get('price')
-            first_buyable = first.get('is_buyable', False)
+            # Had results but none matched the product name — report as OUT_OF_STOCK
+            # Do NOT use unrelated results (causes false availability)
             return ScrapingResult(
-                status='IN_STOCK' if first_buyable else 'OUT_OF_STOCK',
-                price=float(first_price) if first_price else None,
-                product_title=first_title,
-                raw_text=f'Best match for "{display_term}" on Noon',
+                status='OUT_OF_STOCK',
+                raw_text=f'No matching "{display_term}" found in Noon search results',
                 url=url
             )
 
@@ -191,13 +184,21 @@ class NoonScraper(BaseScraper):
         )
 
     def _is_relevant(self, title, query):
-        """Check if a result is relevant to the search query."""
+        """Check if a result is relevant to the specific product we're looking for.
+        Must match the distinctive keyword (not just 'needoh')."""
         if not title or not query:
-            return True
+            return False  # Require explicit match
         title_lower = title.lower()
-        # For NeeDoh products, be generous with matching
-        keywords = [w for w in query.lower().split() if len(w) > 2]
+        query_lower = query.lower()
+
+        # Remove common generic words to find the distinctive keywords
+        generic = {'needoh', 'nee', 'doh', 'schylling', 'stress', 'ball', 'toy', 'fidget', 'sensory'}
+        keywords = [w for w in query_lower.split() if len(w) > 2 and w not in generic]
+
         if not keywords:
-            return True
+            # Product name is only generic words (e.g. "NeeDoh Blob")
+            return 'needoh' in title_lower or ('nee' in title_lower and 'doh' in title_lower)
+
+        # ALL distinctive keywords must appear in the title
         matches = sum(1 for kw in keywords if kw in title_lower)
-        return matches >= max(1, len(keywords) * 0.4)
+        return matches >= len(keywords) * 0.8

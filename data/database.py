@@ -227,7 +227,7 @@ def get_listings_due_for_check():
         """).fetchall()
 
 
-def update_listing_status(listing_id, status, price=None, raw_text=None, seller=None, error=None):
+def update_listing_status(listing_id, status, price=None, raw_text=None, seller=None, error=None, product_url=None):
     with get_db() as conn:
         old = conn.execute("SELECT stock_status, last_price FROM listings WHERE id = ?",
                            (listing_id,)).fetchone()
@@ -240,13 +240,16 @@ def update_listing_status(listing_id, status, price=None, raw_text=None, seller=
                 last_price = COALESCE(?, last_price),
                 raw_text = COALESCE(?, raw_text),
                 seller_name = COALESCE(?, seller_name),
+                url = CASE WHEN ? IS NOT NULL AND ? NOT LIKE '%/s?k=%' AND ? NOT LIKE '%/search?q=%' AND ? NOT LIKE '%/sr?q=%' THEN ? ELSE url END,
                 last_checked_at = ?,
                 last_changed_at = CASE WHEN ? THEN ? ELSE last_changed_at END,
                 check_count = check_count + 1,
                 error_count = CASE WHEN ? IS NOT NULL THEN error_count + 1 ELSE error_count END,
                 last_error = ?
             WHERE id = ?
-        """, (status, previous_status, price, raw_text, seller, now, changed, now, error, error, listing_id))
+        """, (status, previous_status, price, raw_text, seller,
+              product_url, product_url, product_url, product_url, product_url,
+              now, changed, now, error, error, listing_id))
         return {'changed': changed, 'previous_status': previous_status, 'new_status': status,
                 'old_price': old['last_price'] if old else None, 'new_price': price}
 
@@ -379,9 +382,22 @@ def get_dashboard_data():
             SELECT p.*,
                    COUNT(DISTINCT l.id) as listing_count,
                    SUM(CASE WHEN l.stock_status = 'IN_STOCK' THEN 1 ELSE 0 END) as in_stock_count,
-                   MIN(l.last_price) as lowest_price,
+                   MIN(CASE WHEN l.last_price > 0 THEN l.last_price ELSE NULL END) as lowest_price,
                    MAX(l.last_checked_at) as last_check
             FROM products p LEFT JOIN listings l ON p.id = l.product_id
             GROUP BY p.id ORDER BY p.canonical_name
         """).fetchall()
-        return [dict(p) for p in products]
+
+        result = []
+        for p in products:
+            pd = dict(p)
+            # Get per-store listing details for this product
+            listings = conn.execute("""
+                SELECT l.stock_status, l.last_price, l.url, s.name as store_name
+                FROM listings l JOIN stores s ON l.store_id = s.id
+                WHERE l.product_id = ?
+                ORDER BY s.name
+            """, (pd['id'],)).fetchall()
+            pd['store_listings'] = [dict(l) for l in listings]
+            result.append(pd)
+        return result

@@ -59,17 +59,24 @@ class AmazonAEScraper(BaseScraper):
                 if best_result is None or (result.get('price') and not best_result.get('price')):
                     best_result = result
 
-        if not best_result and product_cards:
-            best_result = self._parse_product_card(product_cards[0])
+        # If no relevant match found, report OUT_OF_STOCK — do NOT use unrelated results
+        if not best_result:
+            return ScrapingResult(
+                status='OUT_OF_STOCK',
+                raw_text=f'No matching "{product_name}" found in Amazon.ae search results',
+                url=url
+            )
 
         if best_result:
+            # Build specific product URL from ASIN if available
+            product_url = best_result.get('product_url') or url
             return ScrapingResult(
                 status=best_result.get('status', 'UNKNOWN'),
                 price=best_result.get('price'),
                 seller=best_result.get('seller'),
                 product_title=best_result.get('title'),
                 raw_text=best_result.get('raw_text', ''),
-                url=url
+                url=product_url
             )
 
         return ScrapingResult(status='UNKNOWN', raw_text=self._extract_relevant_text(soup), url=url)
@@ -79,6 +86,15 @@ class AmazonAEScraper(BaseScraper):
         result = {}
         title_el = card.select_one('h2 a span') or card.select_one('.a-text-normal')
         result['title'] = title_el.get_text(strip=True) if title_el else ''
+
+        # Extract specific product URL from the card link
+        link_el = card.select_one('h2 a') or card.select_one('a.a-link-normal[href*="/dp/"]')
+        if link_el and link_el.get('href'):
+            href = link_el['href']
+            if href.startswith('/'):
+                href = f"https://www.amazon.ae{href}"
+            result['product_url'] = href
+
         price_el = card.select_one('.a-price .a-offscreen') or card.select_one('.a-price-whole')
         if price_el:
             result['price'] = self.parse_price(price_el.get_text())
@@ -140,12 +156,25 @@ class AmazonAEScraper(BaseScraper):
             product_title=title, raw_text=page_text[:500], url=url)
 
     def _is_relevant(self, result, product_name):
-        if not product_name or not result.get('title'): return True
+        """Check if a search result matches the specific product we're looking for.
+        Must match the distinctive keyword (not just 'needoh')."""
+        if not product_name or not result.get('title'):
+            return False  # Require explicit match
         title_lower = result['title'].lower()
         name_lower = product_name.lower()
-        keywords = [w for w in name_lower.split() if len(w) > 2]
+
+        # Remove common generic words to find the distinctive keywords
+        generic = {'needoh', 'nee', 'doh', 'schylling', 'stress', 'ball', 'toy', 'fidget', 'sensory'}
+        keywords = [w for w in name_lower.split() if len(w) > 2 and w not in generic]
+
+        if not keywords:
+            # Product name is only generic words (e.g. "NeeDoh Blob")
+            # Check for 'nee' AND 'doh' or 'needoh' in title
+            return 'needoh' in title_lower or ('nee' in title_lower and 'doh' in title_lower)
+
+        # ALL distinctive keywords must appear in the title
         matches = sum(1 for kw in keywords if kw in title_lower)
-        return matches >= len(keywords) * 0.5
+        return matches >= len(keywords) * 0.8
 
     def _extract_relevant_text(self, soup):
         text = soup.get_text(' ', strip=True)

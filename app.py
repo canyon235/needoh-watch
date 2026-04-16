@@ -492,6 +492,62 @@ DASHBOARD_HTML = r"""
             margin-bottom: 12px;
         }
 
+        .product-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: #f8f4ff;
+            padding: 4px;
+        }
+
+        .delivery-info {
+            font-size: 11px;
+            color: var(--light-text);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .store-prices {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .store-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(248, 244, 255, 0.5);
+        }
+
+        .store-price-row .store-label {
+            font-weight: 600;
+            color: var(--light-text);
+        }
+
+        .store-price-row .store-price-val {
+            font-weight: 800;
+            color: var(--pink);
+        }
+
+        .store-price-row .store-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        .store-price-row .store-status-dot.in-stock { background: #84CC16; }
+        .store-price-row .store-status-dot.out-of-stock { background: #FF6B9D; }
+        .store-price-row .store-status-dot.unknown { background: #C084FC; }
+
         .product-name {
             font-size: 18px;
             font-weight: 700;
@@ -999,23 +1055,31 @@ DASHBOARD_HTML = r"""
     <div class="toast" id="toast"></div>
 
 <script>
-// Product emoji mapping
+// Product image mapping (real product photos from Amazon CDN)
+const PRODUCT_IMAGES = {
+    'Nice Cube': 'https://m.media-amazon.com/images/I/51uyZ+EfDML._AC_SL1000_.jpg',
+    'Swirl': 'https://m.media-amazon.com/images/I/61NXrRzvlaL._AC_SL1500_.jpg',
+    'Snowball': 'https://m.media-amazon.com/images/I/81GHcT1DKfL._AC_SL1500_.jpg',
+    'Dohnuts': 'https://m.media-amazon.com/images/I/61vwtW6gKEL._AC_SL1200_.jpg',
+    'Gummy Bear': 'https://m.media-amazon.com/images/I/21UWxeGTTEL._AC_SY300_SX300_QL70_ML2_.jpg',
+    'Fuzz Ball': 'https://m.media-amazon.com/images/I/71p0-4OOoYL._AC_SL1500_.jpg',
+    'Ramen': 'https://m.media-amazon.com/images/I/81fFRVzFhBL._AC_SL1500_.jpg',
+    'Cool Cats': 'https://m.media-amazon.com/images/I/51u0EcMcwwL._AC_SL1500_.jpg',
+    'Dig It Pig': 'https://m.media-amazon.com/images/I/51wi2YkzcjL._AC_UL320_.jpg',
+    'Mac N Squeeze': 'https://m.media-amazon.com/images/I/51zuJO+y3RL._AC_SL1500_.jpg',
+    'Diddy Doh': 'https://m.media-amazon.com/images/I/71LDvtSQOML._AC_UL320_.jpg',
+    'Groovy Fruit': 'https://m.media-amazon.com/images/I/71LDvtSQOML._AC_SL1500_.jpg',
+    'NeeDoh Blob': 'https://m.media-amazon.com/images/I/71iQbLmlBrL._AC_SL1500_.jpg',
+    'Super Needoh': 'https://m.media-amazon.com/images/I/71wMQuZaXKL._AC_SL1500_.jpg',
+    'Teenie': 'https://m.media-amazon.com/images/I/81LMlw57DAL._AC_SL1500_.jpg',
+};
+
+// Fallback emojis if image fails to load
 const PRODUCT_EMOJIS = {
-    'Nice Cube': '🧊',
-    'Swirl': '🌀',
-    'Snowball': '❄️',
-    'Dohnuts': '🍩',
-    'Gummy Bear': '🐻',
-    'Fuzz Ball': '🧸',
-    'Ramen': '🍜',
-    'Cool Cats': '🐱',
-    'Dig It Pig': '🐷',
-    'Mac N Squeeze': '🧀',
-    'Diddy Doh': '🫧',
-    'Groovy Fruit': '🍇',
-    'NeeDoh Blob': '🫠',
-    'Super Needoh': '💪',
-    'Teenie': '🎯',
+    'Nice Cube': '🧊', 'Swirl': '🌀', 'Snowball': '❄️', 'Dohnuts': '🍩',
+    'Gummy Bear': '🐻', 'Fuzz Ball': '🧸', 'Ramen': '🍜', 'Cool Cats': '🐱',
+    'Dig It Pig': '🐷', 'Mac N Squeeze': '🧀', 'Diddy Doh': '🫧',
+    'Groovy Fruit': '🍇', 'NeeDoh Blob': '🫠', 'Super Needoh': '💪', 'Teenie': '🎯',
 };
 
 // Delivery estimates per store
@@ -1064,12 +1128,18 @@ async function refreshDashboard() {
     populateSelects(data.products);
 }
 
-// Get emoji for product
+// Get image URL for product
+function getImageUrl(productName) {
+    for (const [name, url] of Object.entries(PRODUCT_IMAGES)) {
+        if (productName.includes(name)) return url;
+    }
+    return null;
+}
+
+// Get emoji fallback for product
 function getEmoji(productName) {
     for (const [name, emoji] of Object.entries(PRODUCT_EMOJIS)) {
-        if (productName.includes(name)) {
-            return emoji;
-        }
+        if (productName.includes(name)) return emoji;
     }
     return '🎯';
 }
@@ -1093,16 +1163,16 @@ function renderProducts(products) {
 
     grid.innerHTML = products.map(p => {
         const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
+        const imgUrl = getImageUrl(p.canonical_name);
         const emoji = getEmoji(p.canonical_name);
         const color = getCardColor();
         const inStock = p.in_stock_count || 0;
         const total = p.listing_count || 0;
-        const price = p.lowest_price ? `AED ${p.lowest_price.toFixed(0)}` : 'Price TBD';
 
         let statusClass, statusText;
         if (inStock > 0) {
             statusClass = 'status-available';
-            statusText = `✅ Available (${inStock}/${total})`;
+            statusText = `✅ Available (${inStock}/${total} stores)`;
         } else if (!p.last_check) {
             statusClass = 'status-checking';
             statusText = '⏳ Checking...';
@@ -1111,12 +1181,35 @@ function renderProducts(products) {
             statusText = '❌ Out of Stock';
         }
 
+        // Build per-store price rows
+        const storeListings = p.store_listings || [];
+        let storePricesHtml = '';
+        if (storeListings.length > 0) {
+            const rows = storeListings.map(sl => {
+                const storeShort = sl.store_name.replace(' UAE', '').replace(' Megastore', '');
+                const price = sl.last_price ? `AED ${sl.last_price.toFixed(0)}` : '—';
+                const dotClass = sl.stock_status === 'IN_STOCK' ? 'in-stock'
+                               : sl.stock_status === 'OUT_OF_STOCK' ? 'out-of-stock' : 'unknown';
+                const delivery = DELIVERY_ESTIMATES[sl.store_name] || '';
+                return `<div class="store-price-row">
+                    <span class="store-label"><span class="store-status-dot ${dotClass}"></span>${storeShort}</span>
+                    <span class="store-price-val">${price}</span>
+                </div>`;
+            }).join('');
+            storePricesHtml = `<div class="store-prices">${rows}</div>`;
+        }
+
+        // Image with emoji fallback
+        const imageHtml = imgUrl
+            ? `<img class="product-img" src="${imgUrl}" alt="${p.canonical_name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="product-emoji" style="display:none">${emoji}</div>`
+            : `<div class="product-emoji">${emoji}</div>`;
+
         return `<div class="product-card ${color}" onclick="showProductDetail(${p.id})">
-            <div class="product-emoji">${emoji}</div>
+            ${imageHtml}
             <div class="product-name">${p.canonical_name}</div>
             ${p.variant ? `<div style="font-size: 12px; color: var(--light-text); margin-bottom: 8px;">${p.variant}</div>` : ''}
             <div class="product-status ${statusClass}">${statusText}</div>
-            <div class="product-price">${price}</div>
+            ${storePricesHtml}
             <div class="product-actions">
                 <button class="btn-small report" onclick="event.stopPropagation(); showSightingModal('${p.canonical_name}')">👀 Spotted</button>
                 <button class="btn-small" onclick="event.stopPropagation(); showProductDetail(${p.id})">🔍 Details</button>
@@ -1139,6 +1232,7 @@ async function showProductDetail(id) {
 
     const p = data.product;
     const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
+    const imgUrl = getImageUrl(p.canonical_name);
     const emoji = getEmoji(p.canonical_name);
 
     let storesHtml = '';
@@ -1147,14 +1241,13 @@ async function showProductDetail(id) {
             const price = l.last_price ? `AED ${l.last_price.toFixed(0)}` : '—';
             const status = l.stock_status === 'IN_STOCK' ? '✅ In Stock'
                          : l.stock_status === 'OUT_OF_STOCK' ? '❌ Out of Stock'
-                         : l.stock_status === 'LOW_STOCK' ? '⚠️ Low Stock' : '⏳ Unknown';
+                         : l.stock_status === 'LOW_STOCK' ? '⚠️ Low Stock' : '⏳ Checking...';
             const delivery = DELIVERY_ESTIMATES[l.store_name] || 'Varies';
-            const storeClass = l.store_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
             return `<div class="store-detail-row">
                 <div class="store-detail-info">
                     <div class="store-detail-name">${l.store_name}</div>
-                    <div class="store-detail-meta">${delivery}</div>
+                    <div class="store-detail-meta">${status} · ${delivery}</div>
                 </div>
                 <div class="store-detail-price">${price}</div>
                 ${l.url ? `<a href="${l.url}" target="_blank" rel="noopener" class="store-detail-button">Buy Now 🛒</a>` : '<button class="store-detail-button disabled">N/A</button>'}
@@ -1179,8 +1272,13 @@ async function showProductDetail(id) {
             }).join('');
     }
 
+    const modalImgHtml = imgUrl
+        ? `<img src="${imgUrl}" alt="${name}" style="width:120px; height:120px; object-fit:contain; border-radius:12px; background:#f8f4ff; padding:4px; margin-bottom:12px;">`
+        : `<div style="font-size:48px; margin-bottom:12px;">${emoji}</div>`;
+
     document.getElementById('modalContent').innerHTML = `
-        <h2>${emoji} ${name}</h2>
+        ${modalImgHtml}
+        <h2>${name}</h2>
         <h3>🏬 Where to Buy</h3>
         ${storesHtml}
         ${recentNewsHtml}
@@ -1298,6 +1396,17 @@ if __name__ == '__main__':
     else:
         # Always ensure seed data exists
         seed_all()
+
+    # Reset stale status data so scrapers re-check with improved matching
+    try:
+        with get_db() as conn:
+            conn.execute("""
+                UPDATE listings SET stock_status = NULL, last_price = NULL,
+                last_checked_at = NULL WHERE stock_status IS NOT NULL
+            """)
+            print("  ✓ Reset listing statuses for fresh re-check")
+    except Exception as e:
+        print(f"  ⚠ Could not reset listings: {e}")
 
     if args.auto_check:
         bg_thread = threading.Thread(target=background_checker, args=(120,), daemon=True)
