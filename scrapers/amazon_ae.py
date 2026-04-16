@@ -76,7 +76,8 @@ class AmazonAEScraper(BaseScraper):
                 seller=best_result.get('seller'),
                 product_title=best_result.get('title'),
                 raw_text=best_result.get('raw_text', ''),
-                url=product_url
+                url=product_url,
+                delivery_estimate=best_result.get('delivery')
             )
 
         return ScrapingResult(status='UNKNOWN', raw_text=self._extract_relevant_text(soup), url=url)
@@ -116,6 +117,15 @@ class AmazonAEScraper(BaseScraper):
         seller_el = card.select_one('.a-row.a-size-base .a-color-secondary')
         if seller_el:
             result['seller'] = seller_el.get_text(strip=True)
+
+        # Extract delivery estimate from card text
+        delivery_match = re.search(
+            r'(?:get it|delivery|arrives?|free delivery)\s*(tomorrow|today|(?:sun|mon|tue|wed|thu|fri|sat)\w*,?\s*\w+\s*\d+|(?:\d+\s*-\s*\d+\s*(?:days?|business)))',
+            card_text, re.I
+        )
+        if delivery_match:
+            result['delivery'] = delivery_match.group(0).strip()
+
         return result
 
     def _parse_product_page(self, soup, url, html):
@@ -155,13 +165,25 @@ class AmazonAEScraper(BaseScraper):
         return ScrapingResult(status=status, price=price, seller=seller,
             product_title=title, raw_text=page_text[:500], url=url)
 
+    def _is_needoh_brand(self, title):
+        """Check if a product is genuinely a NeeDoh/Schylling brand item."""
+        if not title:
+            return False
+        t = title.lower()
+        return ('needoh' in t or 'nee doh' in t or 'nee-doh' in t
+                or 'schylling' in t or 'nee doh' in t.replace('-', ' '))
+
     def _is_relevant(self, result, product_name):
         """Check if a search result matches the specific product we're looking for.
-        Must match the distinctive keyword (not just 'needoh')."""
+        Must be NeeDoh brand AND match the distinctive keyword."""
         if not product_name or not result.get('title'):
             return False  # Require explicit match
         title_lower = result['title'].lower()
         name_lower = product_name.lower()
+
+        # MUST be NeeDoh/Schylling brand
+        if not self._is_needoh_brand(result['title']):
+            return False
 
         # Remove common generic words to find the distinctive keywords
         generic = {'needoh', 'nee', 'doh', 'schylling', 'stress', 'ball', 'toy', 'fidget', 'sensory'}
@@ -169,8 +191,7 @@ class AmazonAEScraper(BaseScraper):
 
         if not keywords:
             # Product name is only generic words (e.g. "NeeDoh Blob")
-            # Check for 'nee' AND 'doh' or 'needoh' in title
-            return 'needoh' in title_lower or ('nee' in title_lower and 'doh' in title_lower)
+            return True  # Brand check already passed above
 
         # ALL distinctive keywords must appear in the title
         matches = sum(1 for kw in keywords if kw in title_lower)

@@ -1,6 +1,7 @@
 """
 Seed data for NeeDoh Watch MVP.
-15 NeeDoh SKUs across 3 UAE stores.
+13 verified NeeDoh SKUs across 4 UAE-accessible stores.
+Products verified against https://myneedoh.com
 """
 
 from data.database import init_db, get_db
@@ -8,18 +9,16 @@ import json
 
 
 PRODUCTS = [
-    {"canonical_name": "Nice Cube", "variant": "Original", "aliases": ["NeeDoh Nice Cube", "Schylling Nice Cube", "Nee Doh Nice Cube"]},
-    {"canonical_name": "Nice Cube", "variant": "Swirl", "aliases": ["Swirl Nice Cube", "NeeDoh Swirl Nice Cube"]},
-    {"canonical_name": "Snowball Crunch", "variant": None, "aliases": ["NeeDoh Snowball Crunch", "Snowball Crunch Needoh"]},
+    {"canonical_name": "Nice Cube", "variant": None, "aliases": ["NeeDoh Nice Cube", "Schylling Nice Cube", "Nee Doh Nice Cube", "Nice Ice Baby", "Swirl Nice Cube"]},
+    {"canonical_name": "Snowball Crunch", "variant": None, "aliases": ["NeeDoh Snowball Crunch", "Snowball Crunch Needoh", "NeeDoh Snow Ball"]},
     {"canonical_name": "Dohnuts", "variant": None, "aliases": ["NeeDoh Dohnuts", "Nee Doh Dohnuts", "Needoh Donuts"]},
-    {"canonical_name": "Teenie Needoh", "variant": "Pack", "aliases": ["Teenie Pack", "NeeDoh Teenie", "Mini Needoh"]},
+    {"canonical_name": "Teenie Needoh", "variant": "Pack", "aliases": ["Teenie Pack", "NeeDoh Teenie", "Mini Needoh", "Teenie Gobs of Globs", "Rainboh Teenie"]},
     {"canonical_name": "Gummy Bear", "variant": None, "aliases": ["NeeDoh Gummy Bear", "Nee Doh Gummy Bear"]},
     {"canonical_name": "Fuzz Ball", "variant": None, "aliases": ["NeeDoh Fuzz Ball", "Nee Doh Fuzz Ball", "Needoh Fuzzball"]},
     {"canonical_name": "Ramen Noodlies", "variant": None, "aliases": ["NeeDoh Ramen Noodlies", "Nee Doh Ramen", "Needoh Ramen"]},
     {"canonical_name": "Cool Cats", "variant": None, "aliases": ["NeeDoh Cool Cats", "Nee Doh Cool Cats"]},
     {"canonical_name": "Dig It Pig", "variant": None, "aliases": ["NeeDoh Dig It Pig", "Nee Doh Pig"]},
     {"canonical_name": "Mac N Squeeze", "variant": None, "aliases": ["NeeDoh Mac N Squeeze", "Mac and Squeeze", "Needoh Mac N Cheese"]},
-    {"canonical_name": "Diddy Doh", "variant": None, "aliases": ["NeeDoh Diddy Doh", "Diddy Needoh"]},
     {"canonical_name": "Groovy Fruit", "variant": None, "aliases": ["NeeDoh Groovy Fruit", "Nee Doh Groovy Fruit"]},
     {"canonical_name": "NeeDoh Blob", "variant": "Original", "aliases": ["Nee Doh", "NeeDoh Original", "Schylling NeeDoh"]},
     {"canonical_name": "Super Needoh", "variant": "Jumbo", "aliases": ["Super NeeDoh", "Jumbo Needoh", "Large Needoh"]},
@@ -43,15 +42,6 @@ STORES = [
         "check_interval_minutes": 5
     },
     {
-        "name": "Virgin Megastore UAE",
-        "type": "hybrid",
-        "city": "Dubai",
-        "mall": "Multiple",
-        "base_url": "https://www.virginmegastore.ae",
-        "supports_store_check": 1,
-        "check_interval_minutes": 15
-    },
-    {
         "name": "Desertcart",
         "type": "online",
         "city": "UAE",
@@ -70,62 +60,51 @@ STORES = [
 ]
 
 # Product URLs per store (real search/category pages)
+# Store indices: 0=Amazon.ae, 1=Noon, 2=Desertcart, 3=Trendyol
 LISTINGS = [
-    # Amazon.ae listings
+    # Amazon.ae listings (store_idx=0)
     {"product_idx": 0, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+nice+cube"},
-    {"product_idx": 1, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+swirl+nice+cube"},
-    {"product_idx": 2, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+snowball+crunch"},
-    {"product_idx": 3, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+dohnuts"},
-    {"product_idx": 4, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+teenie"},
-    {"product_idx": 5, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+gummy+bear"},
-    {"product_idx": 6, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+fuzz+ball"},
-    {"product_idx": 7, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+ramen+noodlies"},
-    {"product_idx": 8, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+cool+cats"},
-    {"product_idx": 9, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+dig+it+pig"},
-    {"product_idx": 10, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+mac+n+squeeze"},
-    {"product_idx": 11, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+diddy+doh"},
-    {"product_idx": 12, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+groovy+fruit"},
-    {"product_idx": 13, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh"},
-    {"product_idx": 14, "store_idx": 0, "url": "https://www.amazon.ae/s?k=super+needoh"},
+    {"product_idx": 1, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+snowball+crunch"},
+    {"product_idx": 2, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+dohnuts"},
+    {"product_idx": 3, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+teenie"},
+    {"product_idx": 4, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+gummy+bear"},
+    {"product_idx": 5, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+fuzz+ball"},
+    {"product_idx": 6, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+ramen+noodlies"},
+    {"product_idx": 7, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+cool+cats"},
+    {"product_idx": 8, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+dig+it+pig"},
+    {"product_idx": 9, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+mac+n+squeeze"},
+    {"product_idx": 10, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+groovy+fruit"},
+    {"product_idx": 11, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh"},
+    {"product_idx": 12, "store_idx": 0, "url": "https://www.amazon.ae/s?k=super+needoh"},
 
-    # Noon listings
+    # Noon listings (store_idx=1)
     {"product_idx": 0, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+nice+cube"},
-    {"product_idx": 1, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+swirl+nice+cube"},
-    {"product_idx": 2, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+snowball+crunch"},
-    {"product_idx": 3, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+dohnuts"},
-    {"product_idx": 4, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+teenie"},
-    {"product_idx": 5, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+gummy+bear"},
-    {"product_idx": 6, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+fuzz+ball"},
-    {"product_idx": 7, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+ramen"},
-    {"product_idx": 13, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh"},
+    {"product_idx": 1, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+snowball+crunch"},
+    {"product_idx": 2, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+dohnuts"},
+    {"product_idx": 3, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+teenie"},
+    {"product_idx": 4, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+gummy+bear"},
+    {"product_idx": 5, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+fuzz+ball"},
+    {"product_idx": 6, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+ramen"},
+    {"product_idx": 11, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh"},
 
-    # Virgin Megastore UAE listings
-    {"product_idx": 0, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+nice+cube"},
-    {"product_idx": 2, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+snowball"},
-    {"product_idx": 3, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+dohnuts"},
-    {"product_idx": 5, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+gummy+bear"},
-    {"product_idx": 6, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+fuzz+ball"},
-    {"product_idx": 7, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+ramen"},
-    {"product_idx": 13, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh"},
+    # Desertcart listings (store_idx=2) — JS-rendered, uses Playwright
+    {"product_idx": 0, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+nice+cube"},
+    {"product_idx": 1, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+snowball"},
+    {"product_idx": 2, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+dohnuts"},
+    {"product_idx": 3, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+teenie"},
+    {"product_idx": 4, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+gummy+bear"},
+    {"product_idx": 5, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+fuzz+ball"},
+    {"product_idx": 6, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+ramen"},
+    {"product_idx": 11, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh"},
+    {"product_idx": 12, "store_idx": 2, "url": "https://www.desertcart.ae/search/super+needoh"},
 
-    # Desertcart listings
-    {"product_idx": 0, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+nice+cube"},
-    {"product_idx": 2, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+snowball+crunch"},
-    {"product_idx": 3, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+dohnuts"},
-    {"product_idx": 5, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+gummy+bear"},
-    {"product_idx": 6, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+fuzz+ball"},
-    {"product_idx": 7, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+ramen"},
-    {"product_idx": 13, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh"},
-    {"product_idx": 4, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+teenie"},
-    {"product_idx": 14, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=super+needoh"},
-
-    # Trendyol listings
-    {"product_idx": 0, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+nice+cube"},
-    {"product_idx": 5, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+gummy+bear"},
-    {"product_idx": 6, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+fuzz+ball"},
-    {"product_idx": 13, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh"},
-    {"product_idx": 3, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+dohnuts"},
-    {"product_idx": 14, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=super+needoh"},
+    # Trendyol listings (store_idx=3) — Cloudflare-protected, uses Playwright
+    {"product_idx": 0, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+nice+cube"},
+    {"product_idx": 4, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+gummy+bear"},
+    {"product_idx": 5, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+fuzz+ball"},
+    {"product_idx": 11, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh"},
+    {"product_idx": 2, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+dohnuts"},
+    {"product_idx": 12, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=super+needoh"},
 ]
 
 

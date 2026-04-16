@@ -11,7 +11,6 @@ from data.database import (
 )
 from scrapers.amazon_ae import AmazonAEScraper
 from scrapers.noon_uae import NoonScraper
-from scrapers.virgin_uae import VirginScraper
 from scrapers.desertcart_ae import DesertcartScraper
 from scrapers.trendyol import TrendyolScraper
 from engines.normalizer import normalize_result
@@ -32,13 +31,12 @@ class StockChecker:
         self.scrapers = {
             'Amazon.ae': AmazonAEScraper(),
             'Noon': NoonScraper(),
-            'Virgin Megastore UAE': VirginScraper(),
             'Desertcart': DesertcartScraper(),
             'Trendyol': TrendyolScraper(),
         }
-        # Playwright fallback for JS-heavy sites
+        # Playwright fallback for JS-heavy sites (Desertcart=Next.js, Trendyol=Cloudflare)
         self.playwright_scraper = PlaywrightScraper() if HAS_PLAYWRIGHT else None
-        self.playwright_stores = {'Noon', 'Virgin Megastore UAE', 'Trendyol'}
+        self.playwright_stores = {'Noon', 'Desertcart', 'Trendyol'}
         self.alert_engine = AlertEngine(notifier=notifier)
         self.offline_engine = OfflineEngine(alert_engine=self.alert_engine)
         self.stats = {
@@ -87,7 +85,8 @@ class StockChecker:
             result = scraper.check_stock(listing['url'], product_name)
 
             # If result is UNKNOWN and Playwright is available, retry with browser
-            if (result.status == 'UNKNOWN' and not result.error
+            # (also retry when there's an error like Cloudflare block or JS-rendering failure)
+            if (result.status == 'UNKNOWN'
                     and self.playwright_scraper
                     and store_name in self.playwright_stores):
                 print(f"    ↻ Retrying {store_name} with Playwright...")
@@ -108,7 +107,8 @@ class StockChecker:
                 raw_text=result.raw_text,
                 seller=result.seller,
                 error=result.error,
-                product_url=result.url
+                product_url=result.url,
+                delivery_estimate=getattr(result, 'delivery_estimate', None)
             )
 
             # Log the check

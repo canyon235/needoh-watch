@@ -118,6 +118,16 @@ class NoonScraper(BaseScraper):
                 if product_url and not product_url.startswith('http'):
                     product_url = f"https://www.noon.com/uae-en/{product_url}"
 
+                # Extract delivery estimate from Noon API data
+                delivery_estimate = None
+                delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
+                if delivery_text:
+                    delivery_estimate = delivery_text
+                elif hit.get('is_express_delivery'):
+                    delivery_estimate = 'Express delivery available'
+                elif hit.get('delivery_days'):
+                    delivery_estimate = f"Delivers in {hit['delivery_days']} days"
+
                 return ScrapingResult(
                     status=status,
                     price=float(actual_price) if actual_price else None,
@@ -129,7 +139,8 @@ class NoonScraper(BaseScraper):
                         'is_buyable': is_buyable,
                         'stock_text': stock_text,
                     }),
-                    url=product_url or url  # Use specific product URL when available
+                    url=product_url or url,  # Use specific product URL when available
+                    delivery_estimate=delivery_estimate
                 )
 
             # Had results but none matched the product name — report as OUT_OF_STOCK
@@ -183,13 +194,25 @@ class NoonScraper(BaseScraper):
             url=url
         )
 
+    def _is_needoh_brand(self, title):
+        """Check if a product is genuinely a NeeDoh/Schylling brand item."""
+        if not title:
+            return False
+        t = title.lower()
+        return ('needoh' in t or 'nee doh' in t or 'nee-doh' in t
+                or 'schylling' in t or 'nee doh' in t.replace('-', ' '))
+
     def _is_relevant(self, title, query):
         """Check if a result is relevant to the specific product we're looking for.
-        Must match the distinctive keyword (not just 'needoh')."""
+        Must be NeeDoh brand AND match the distinctive keyword."""
         if not title or not query:
             return False  # Require explicit match
         title_lower = title.lower()
         query_lower = query.lower()
+
+        # MUST be NeeDoh/Schylling brand
+        if not self._is_needoh_brand(title):
+            return False
 
         # Remove common generic words to find the distinctive keywords
         generic = {'needoh', 'nee', 'doh', 'schylling', 'stress', 'ball', 'toy', 'fidget', 'sensory'}
@@ -197,7 +220,7 @@ class NoonScraper(BaseScraper):
 
         if not keywords:
             # Product name is only generic words (e.g. "NeeDoh Blob")
-            return 'needoh' in title_lower or ('nee' in title_lower and 'doh' in title_lower)
+            return True  # Brand check already passed above
 
         # ALL distinctive keywords must appear in the title
         matches = sum(1 for kw in keywords if kw in title_lower)

@@ -78,8 +78,10 @@ class PlaywrightScraper(BaseScraper):
             # Determine store
             if 'noon.com' in url:
                 return self._parse_noon(page, page_text, page_html, url, product_name, duration)
-            elif 'virginmegastore' in url:
-                return self._parse_virgin(page, page_text, page_html, url, product_name, duration)
+            elif 'desertcart' in url:
+                return self._parse_desertcart(page, page_text, page_html, url, product_name, duration)
+            elif 'trendyol' in url:
+                return self._parse_trendyol(page, page_text, page_html, url, product_name, duration)
             else:
                 return self._parse_generic(page, page_text, url, product_name, duration)
 
@@ -242,6 +244,209 @@ class PlaywrightScraper(BaseScraper):
             store_availability=store_availability,
             url=url
         )
+
+    def _parse_desertcart(self, page, page_text, page_html, url, product_name, duration):
+        """Parse Desertcart search results rendered with JS (Next.js)."""
+        lower = page_text.lower()
+
+        # Wait extra time for JS to render products
+        page.wait_for_timeout(3000)
+        page_text = page.inner_text('body')
+        lower = page_text.lower()
+
+        # Check for no results
+        if 'no results' in lower or 'no products found' in lower or 'sorry' in lower:
+            return ScrapingResult(status='OUT_OF_STOCK', raw_text='No results on Desertcart', url=url)
+
+        # Look for product cards/containers
+        cards = page.query_selector_all(
+            '.product-card, [class*="ProductCard"], [class*="product-item"], '
+            '[class*="search-result"], a[href*="/products/"]'
+        )
+
+        if not cards:
+            # Try broader selectors
+            cards = page.query_selector_all('[class*="product"], [class*="item-card"]')
+
+        for card in cards[:10]:
+            try:
+                card_text = card.inner_text()
+                card_lower = card_text.lower()
+
+                # Must contain needoh/schylling
+                if 'needoh' not in card_lower and 'nee doh' not in card_lower and 'schylling' not in card_lower:
+                    continue
+
+                # Check relevance to specific product
+                if product_name and not self._is_match(card_text, product_name):
+                    continue
+
+                # Extract price (AED format)
+                price = self.parse_price(card_text)
+
+                # Extract product link
+                link = card.query_selector('a[href]') if card.evaluate('el => el.tagName') != 'A' else card
+                product_url = None
+                if link:
+                    href = link.get_attribute('href') or ''
+                    if href.startswith('/'):
+                        product_url = f"https://www.desertcart.ae{href}"
+                    elif href.startswith('http'):
+                        product_url = href
+
+                # Title extraction
+                title_el = card.query_selector('h2, h3, [class*="title"], [class*="name"]')
+                title = title_el.inner_text().strip() if title_el else card_text[:100]
+
+                # Stock indicators
+                indicators = {
+                    'add_to_cart': 'add to cart' in card_lower or 'add to bag' in card_lower,
+                    'out_of_stock_text': 'out of stock' in card_lower or 'unavailable' in card_lower,
+                    'price_visible': price is not None,
+                }
+
+                # Extract delivery info
+                delivery = None
+                delivery_match = re.search(
+                    r'(?:deliver|ship|arrives?|get it)\s*(?:by|in|on)?\s*([\w\s,\d-]+)',
+                    card_text, re.I
+                )
+                if delivery_match:
+                    delivery = delivery_match.group(0).strip()[:50]
+
+                return ScrapingResult(
+                    status=self.normalize_status(indicators),
+                    price=price,
+                    product_title=title,
+                    raw_text=card_text[:300],
+                    url=product_url or url,
+                    delivery_estimate=delivery
+                )
+            except Exception:
+                continue
+
+        # Fallback: scan entire page text for price/stock info
+        if 'needoh' in lower or 'nee doh' in lower:
+            price = self.parse_price(page_text)
+            indicators = {
+                'add_to_cart': 'add to cart' in lower,
+                'out_of_stock_text': 'out of stock' in lower,
+                'price_visible': price is not None,
+            }
+            return ScrapingResult(
+                status=self.normalize_status(indicators),
+                price=price,
+                raw_text=page_text[:500],
+                url=url
+            )
+
+        return ScrapingResult(status='OUT_OF_STOCK', raw_text='No NeeDoh products found on Desertcart', url=url)
+
+    def _parse_trendyol(self, page, page_text, page_html, url, product_name, duration):
+        """Parse Trendyol search results (may have Cloudflare challenge first)."""
+        lower = page_text.lower()
+
+        # Check if still on Cloudflare challenge page
+        if 'checking your browser' in lower or 'just a moment' in lower:
+            # Wait for challenge to resolve
+            page.wait_for_timeout(5000)
+            page_text = page.inner_text('body')
+            lower = page_text.lower()
+
+        # Still on challenge?
+        if 'checking your browser' in lower:
+            return ScrapingResult(
+                status='UNKNOWN',
+                error='Cloudflare challenge did not resolve',
+                url=url
+            )
+
+        # Check for no results
+        if 'sonuç bulunamadı' in lower or 'no results' in lower:
+            return ScrapingResult(status='OUT_OF_STOCK', raw_text='No results on Trendyol', url=url)
+
+        # Look for product cards
+        cards = page.query_selector_all(
+            '.p-card-wrppr, [class*="ProductCard"], .prdct-cntnr-wrppr, '
+            '[class*="product-card"], .p-card'
+        )
+
+        if not cards:
+            cards = page.query_selector_all('[class*="product"]')
+
+        for card in cards[:10]:
+            try:
+                card_text = card.inner_text()
+                card_lower = card_text.lower()
+
+                # Must contain needoh reference
+                if 'needoh' not in card_lower and 'nee doh' not in card_lower and 'schylling' not in card_lower:
+                    continue
+
+                if product_name and not self._is_match(card_text, product_name):
+                    continue
+
+                # Extract price (TL format, convert to AED)
+                price = None
+                tl_match = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:TL|₺)', card_text)
+                if tl_match:
+                    try:
+                        tl_price = float(tl_match.group(1).replace(',', '.'))
+                        price = round(tl_price * 0.12, 2)  # TL to AED
+                    except ValueError:
+                        pass
+
+                if price is None:
+                    price = self.parse_price(card_text)
+
+                # Extract product link
+                link = card.query_selector('a[href]')
+                product_url = None
+                if link:
+                    href = link.get_attribute('href') or ''
+                    if href.startswith('/'):
+                        product_url = f"https://www.trendyol.com{href}"
+                    elif href.startswith('http'):
+                        product_url = href
+
+                # Title
+                title_el = card.query_selector('[class*="name"], [class*="desc"], h3, span')
+                title = title_el.inner_text().strip() if title_el else card_text[:100]
+
+                indicators = {
+                    'add_to_cart': 'sepete' in card_lower or 'add' in card_lower,
+                    'out_of_stock_text': 'tükendi' in card_lower or 'out of stock' in card_lower,
+                    'price_visible': price is not None,
+                }
+
+                return ScrapingResult(
+                    status=self.normalize_status(indicators),
+                    price=price,
+                    currency='AED',
+                    product_title=title,
+                    raw_text=card_text[:300],
+                    url=product_url or url,
+                    store_availability={'Trendyol': self.normalize_status(indicators)}
+                )
+            except Exception:
+                continue
+
+        # Fallback
+        if 'needoh' in lower or 'nee doh' in lower:
+            price = self.parse_price(page_text)
+            indicators = {
+                'add_to_cart': 'sepete' in lower or 'add to cart' in lower,
+                'out_of_stock_text': 'tükendi' in lower or 'out of stock' in lower,
+                'price_visible': price is not None,
+            }
+            return ScrapingResult(
+                status=self.normalize_status(indicators),
+                price=price,
+                raw_text=page_text[:500],
+                url=url
+            )
+
+        return ScrapingResult(status='OUT_OF_STOCK', raw_text='No NeeDoh products found on Trendyol', url=url)
 
     def _parse_generic(self, page, page_text, url, product_name, duration):
         """Generic page parser."""

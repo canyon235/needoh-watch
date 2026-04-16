@@ -72,6 +72,7 @@ def init_db():
                 check_count INTEGER DEFAULT 0,
                 error_count INTEGER DEFAULT 0,
                 last_error TEXT,
+                delivery_estimate TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (product_id) REFERENCES products(id),
                 FOREIGN KEY (store_id) REFERENCES stores(id),
@@ -227,7 +228,7 @@ def get_listings_due_for_check():
         """).fetchall()
 
 
-def update_listing_status(listing_id, status, price=None, raw_text=None, seller=None, error=None, product_url=None):
+def update_listing_status(listing_id, status, price=None, raw_text=None, seller=None, error=None, product_url=None, delivery_estimate=None):
     with get_db() as conn:
         old = conn.execute("SELECT stock_status, last_price FROM listings WHERE id = ?",
                            (listing_id,)).fetchone()
@@ -245,11 +246,12 @@ def update_listing_status(listing_id, status, price=None, raw_text=None, seller=
                 last_changed_at = CASE WHEN ? THEN ? ELSE last_changed_at END,
                 check_count = check_count + 1,
                 error_count = CASE WHEN ? IS NOT NULL THEN error_count + 1 ELSE error_count END,
-                last_error = ?
+                last_error = ?,
+                delivery_estimate = COALESCE(?, delivery_estimate)
             WHERE id = ?
         """, (status, previous_status, price, raw_text, seller,
               product_url, product_url, product_url, product_url, product_url,
-              now, changed, now, error, error, listing_id))
+              now, changed, now, error, error, delivery_estimate, listing_id))
         return {'changed': changed, 'previous_status': previous_status, 'new_status': status,
                 'old_price': old['last_price'] if old else None, 'new_price': price}
 
@@ -393,7 +395,7 @@ def get_dashboard_data():
             pd = dict(p)
             # Get per-store listing details for this product
             listings = conn.execute("""
-                SELECT l.stock_status, l.last_price, l.url, s.name as store_name
+                SELECT l.stock_status, l.last_price, l.url, l.delivery_estimate, s.name as store_name
                 FROM listings l JOIN stores s ON l.store_id = s.id
                 WHERE l.product_id = ?
                 ORDER BY s.name

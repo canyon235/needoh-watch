@@ -1029,9 +1029,9 @@ DASHBOARD_HTML = r"""
                 <select class="form-input" id="sightStore">
                     <option value="Amazon.ae">Amazon.ae</option>
                     <option value="Noon">Noon</option>
-                    <option value="Virgin Megastore UAE">Virgin Megastore UAE</option>
                     <option value="Desertcart">Desertcart</option>
                     <option value="Trendyol">Trendyol</option>
+                    <option value="Other">Other Store</option>
                 </select>
             </div>
             <div class="form-group">
@@ -1055,40 +1055,29 @@ DASHBOARD_HTML = r"""
     <div class="toast" id="toast"></div>
 
 <script>
-// Product image mapping (real product photos from Amazon CDN)
+// Product image mapping — verified against https://myneedoh.com
 const PRODUCT_IMAGES = {
-    'Nice Cube': 'https://m.media-amazon.com/images/I/51uyZ+EfDML._AC_SL1000_.jpg',
-    'Swirl': 'https://m.media-amazon.com/images/I/61NXrRzvlaL._AC_SL1500_.jpg',
-    'Snowball': 'https://m.media-amazon.com/images/I/81GHcT1DKfL._AC_SL1500_.jpg',
+    'Nice Cube': 'https://myneedoh.com/wp-content/uploads/2025/08/717FM41-pPL._AC_SL1500_.jpg',
+    'Snowball': 'https://myneedoh.com/wp-content/uploads/2024/10/nd22.jpg',
     'Dohnuts': 'https://m.media-amazon.com/images/I/61vwtW6gKEL._AC_SL1200_.jpg',
-    'Gummy Bear': 'https://m.media-amazon.com/images/I/21UWxeGTTEL._AC_SY300_SX300_QL70_ML2_.jpg',
+    'Gummy Bear': 'https://myneedoh.com/wp-content/uploads/2025/08/714i4fiAGsL._AC_SL1500_.jpg',
     'Fuzz Ball': 'https://m.media-amazon.com/images/I/71p0-4OOoYL._AC_SL1500_.jpg',
     'Ramen': 'https://m.media-amazon.com/images/I/81fFRVzFhBL._AC_SL1500_.jpg',
     'Cool Cats': 'https://m.media-amazon.com/images/I/51u0EcMcwwL._AC_SL1500_.jpg',
-    'Dig It Pig': 'https://m.media-amazon.com/images/I/51wi2YkzcjL._AC_UL320_.jpg',
-    'Mac N Squeeze': 'https://m.media-amazon.com/images/I/51zuJO+y3RL._AC_SL1500_.jpg',
-    'Diddy Doh': 'https://m.media-amazon.com/images/I/71LDvtSQOML._AC_UL320_.jpg',
-    'Groovy Fruit': 'https://m.media-amazon.com/images/I/71LDvtSQOML._AC_SL1500_.jpg',
-    'NeeDoh Blob': 'https://m.media-amazon.com/images/I/71iQbLmlBrL._AC_SL1500_.jpg',
-    'Super Needoh': 'https://m.media-amazon.com/images/I/71wMQuZaXKL._AC_SL1500_.jpg',
-    'Teenie': 'https://m.media-amazon.com/images/I/81LMlw57DAL._AC_SL1500_.jpg',
+    'Dig It Pig': 'https://myneedoh.com/wp-content/uploads/2024/10/nd12.jpg',
+    'Mac N Squeeze': 'https://myneedoh.com/wp-content/uploads/2024/10/nd10.jpg',
+    'Groovy Fruit': 'https://myneedoh.com/wp-content/uploads/2024/10/nd11.jpg',
+    'NeeDoh Blob': 'https://myneedoh.com/wp-content/uploads/2024/10/nd1.jpg',
+    'Super Needoh': 'https://myneedoh.com/wp-content/uploads/2024/10/nd4.jpg',
+    'Teenie': 'https://myneedoh.com/wp-content/uploads/2024/10/nd9.jpg',
 };
 
 // Fallback emojis if image fails to load
 const PRODUCT_EMOJIS = {
-    'Nice Cube': '🧊', 'Swirl': '🌀', 'Snowball': '❄️', 'Dohnuts': '🍩',
+    'Nice Cube': '🧊', 'Snowball': '❄️', 'Dohnuts': '🍩',
     'Gummy Bear': '🐻', 'Fuzz Ball': '🧸', 'Ramen': '🍜', 'Cool Cats': '🐱',
-    'Dig It Pig': '🐷', 'Mac N Squeeze': '🧀', 'Diddy Doh': '🫧',
+    'Dig It Pig': '🐷', 'Mac N Squeeze': '🧀',
     'Groovy Fruit': '🍇', 'NeeDoh Blob': '🫠', 'Super Needoh': '💪', 'Teenie': '🎯',
-};
-
-// Delivery estimates per store
-const DELIVERY_ESTIMATES = {
-    'Amazon.ae': 'Ships in 1-3 days',
-    'Noon': 'Ships in 1-2 days',
-    'Virgin Megastore UAE': 'Same day pickup possible',
-    'Desertcart': 'Ships in 5-15 days',
-    'Trendyol': 'Ships in 7-20 days',
 };
 
 // Color rotation for product cards
@@ -1190,8 +1179,11 @@ function renderProducts(products) {
                 const price = sl.last_price ? `AED ${sl.last_price.toFixed(0)}` : '—';
                 const dotClass = sl.stock_status === 'IN_STOCK' ? 'in-stock'
                                : sl.stock_status === 'OUT_OF_STOCK' ? 'out-of-stock' : 'unknown';
-                const delivery = DELIVERY_ESTIMATES[sl.store_name] || '';
-                const deliveryShort = delivery.replace('Ships in ', '📦 ').replace('Same day pickup possible', '🏪 Same day');
+                // Use real delivery estimate from scraper (only show when product is in stock)
+                let deliveryShort = '';
+                if (sl.stock_status === 'IN_STOCK' && sl.delivery_estimate) {
+                    deliveryShort = '📦 ' + sl.delivery_estimate;
+                }
                 return `<div class="store-price-row">
                     <span class="store-label"><span class="store-status-dot ${dotClass}"></span>${storeShort}</span>
                     <span class="delivery-info">${deliveryShort}</span>
@@ -1244,15 +1236,27 @@ async function showProductDetail(id) {
             const status = l.stock_status === 'IN_STOCK' ? '✅ In Stock'
                          : l.stock_status === 'OUT_OF_STOCK' ? '❌ Out of Stock'
                          : l.stock_status === 'LOW_STOCK' ? '⚠️ Low Stock' : '⏳ Checking...';
-            const delivery = DELIVERY_ESTIMATES[l.store_name] || 'Varies';
+            // Only show real delivery date when product is in stock and we have data
+            const delivery = (l.stock_status === 'IN_STOCK' && l.delivery_estimate) ? l.delivery_estimate : '';
+            const metaText = delivery ? `${status} · 📦 ${delivery}` : status;
+
+            // Only show Buy Now button when product is actually in stock and we have a real product URL
+            let actionButton = '';
+            if (l.stock_status === 'IN_STOCK' && l.url) {
+                actionButton = `<a href="${l.url}" target="_blank" rel="noopener" class="store-detail-button">Buy Now 🛒</a>`;
+            } else if (l.stock_status === 'IN_STOCK' || l.stock_status === 'LOW_STOCK') {
+                actionButton = `<a href="${l.url}" target="_blank" rel="noopener" class="store-detail-button">View 🔗</a>`;
+            } else {
+                actionButton = '<button class="store-detail-button disabled">Unavailable</button>';
+            }
 
             return `<div class="store-detail-row">
                 <div class="store-detail-info">
                     <div class="store-detail-name">${l.store_name}</div>
-                    <div class="store-detail-meta">${status} · ${delivery}</div>
+                    <div class="store-detail-meta">${metaText}</div>
                 </div>
                 <div class="store-detail-price">${price}</div>
-                ${l.url ? `<a href="${l.url}" target="_blank" rel="noopener" class="store-detail-button">Buy Now 🛒</a>` : '<button class="store-detail-button disabled">N/A</button>'}
+                ${actionButton}
             </div>`;
         }).join('');
     } else {
@@ -1399,16 +1403,53 @@ if __name__ == '__main__':
         # Always ensure seed data exists
         seed_all()
 
-    # Reset stale status data so scrapers re-check with improved matching
+    # Database cleanup and migration on startup
     try:
         with get_db() as conn:
+            # Add delivery_estimate column if missing (migration)
+            try:
+                conn.execute("SELECT delivery_estimate FROM listings LIMIT 1")
+            except Exception:
+                conn.execute("ALTER TABLE listings ADD COLUMN delivery_estimate TEXT")
+                print("  ✓ Added delivery_estimate column")
+
+            # Remove Virgin store and its listings (no longer supported)
+            virgin_store = conn.execute("SELECT id FROM stores WHERE name LIKE '%Virgin%'").fetchone()
+            if virgin_store:
+                conn.execute("DELETE FROM listings WHERE store_id = ?", (virgin_store['id'],))
+                conn.execute("DELETE FROM stores WHERE id = ?", (virgin_store['id'],))
+                print("  ✓ Removed Virgin store and listings")
+
+            # Remove Diddy Doh product (not a real NeeDoh product)
+            diddy = conn.execute("SELECT id FROM products WHERE canonical_name = 'Diddy Doh'").fetchone()
+            if diddy:
+                conn.execute("DELETE FROM listings WHERE product_id = ?", (diddy['id'],))
+                conn.execute("DELETE FROM products WHERE id = ?", (diddy['id'],))
+                print("  ✓ Removed Diddy Doh (not a real NeeDoh product)")
+
+            # Merge Nice Cube (Swirl) into Nice Cube if both exist
+            nice_cube_orig = conn.execute(
+                "SELECT id FROM products WHERE canonical_name = 'Nice Cube' AND variant = 'Original'"
+            ).fetchone()
+            nice_cube_swirl = conn.execute(
+                "SELECT id FROM products WHERE canonical_name = 'Nice Cube' AND variant = 'Swirl'"
+            ).fetchone()
+            if nice_cube_orig and nice_cube_swirl:
+                # Move Swirl listings to Original, then delete Swirl
+                conn.execute("UPDATE listings SET product_id = ? WHERE product_id = ?",
+                             (nice_cube_orig['id'], nice_cube_swirl['id']))
+                conn.execute("UPDATE products SET variant = NULL WHERE id = ?", (nice_cube_orig['id'],))
+                conn.execute("DELETE FROM products WHERE id = ?", (nice_cube_swirl['id'],))
+                print("  ✓ Merged Nice Cube variants into single product")
+
+            # Reset stale status data so scrapers re-check with improved matching
             conn.execute("""
                 UPDATE listings SET stock_status = NULL, last_price = NULL,
                 last_checked_at = NULL WHERE stock_status IS NOT NULL
             """)
             print("  ✓ Reset listing statuses for fresh re-check")
     except Exception as e:
-        print(f"  ⚠ Could not reset listings: {e}")
+        print(f"  ⚠ Database cleanup error: {e}")
 
     if args.auto_check:
         bg_thread = threading.Thread(target=background_checker, args=(120,), daemon=True)

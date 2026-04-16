@@ -34,7 +34,8 @@ class ScrapingResult:
 
     def __init__(self, status='UNKNOWN', price=None, currency='AED',
                  seller=None, raw_text='', store_availability=None,
-                 product_title=None, error=None, url=None):
+                 product_title=None, error=None, url=None,
+                 delivery_estimate=None):
         self.status = status          # IN_STOCK, LOW_STOCK, OUT_OF_STOCK, UNKNOWN
         self.price = price            # float or None
         self.currency = currency
@@ -44,6 +45,7 @@ class ScrapingResult:
         self.product_title = product_title
         self.error = error
         self.url = url
+        self.delivery_estimate = delivery_estimate  # e.g. "Tomorrow", "Wed, Apr 23"
         self.checked_at = datetime.utcnow().isoformat()
 
     def to_dict(self):
