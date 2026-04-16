@@ -1,11 +1,11 @@
 """
 Scraper for Trendyol (trendyol.com) - Turkish e-commerce platform.
-Handles Cloudflare protection with enhanced headers and graceful fallback.
+Handles Cloudflare protection with proxy fallback for blocked IPs.
 """
 
 import re
 from bs4 import BeautifulSoup
-from scrapers.base import BaseScraper, ScrapingResult, HEADERS
+from scrapers.base import BaseScraper, ScrapingResult, HEADERS, PROXY_URL
 
 # Approximate conversion rate: 1 TL = 0.12 AED
 TL_TO_AED = 0.12
@@ -41,13 +41,19 @@ class TrendyolScraper(BaseScraper):
             )
 
         try:
-            # Attempt to fetch the page
+            # Attempt direct fetch first
             html = self.fetch_page(url, timeout=15)
+
+            # If direct fails, try through proxy (Trendyol blocks datacenter IPs)
+            if html is None:
+                proxy_resp = self.proxy_get(url, timeout=20)
+                if proxy_resp and proxy_resp.status_code == 200:
+                    html = proxy_resp.text
 
             if html is None:
                 return ScrapingResult(
                     status='UNKNOWN',
-                    error='Failed to fetch page (possibly blocked by Cloudflare)',
+                    error='Failed to fetch page (blocked by Cloudflare)',
                     url=url,
                     store_availability={'Trendyol': 'UNKNOWN'}
                 )
@@ -84,6 +90,12 @@ class TrendyolScraper(BaseScraper):
         try:
             html = self.fetch_page(search_url, timeout=15)
 
+            # If direct fails or blocked, try proxy
+            if html is None or 'cloudflare' in (html or '').lower():
+                proxy_resp = self.proxy_get(search_url, timeout=20)
+                if proxy_resp and proxy_resp.status_code == 200:
+                    html = proxy_resp.text
+
             if html is None:
                 return [ScrapingResult(
                     status='UNKNOWN',
@@ -92,11 +104,11 @@ class TrendyolScraper(BaseScraper):
                     store_availability={'Trendyol': 'UNKNOWN'}
                 )]
 
-            # Check for Cloudflare blocks
+            # Check for Cloudflare blocks (even after proxy)
             if 'cloudflare' in html.lower() or 'error 403' in html.lower():
                 return [ScrapingResult(
                     status='UNKNOWN',
-                    error='Cloudflare protection detected - Playwright needed',
+                    error='Cloudflare protection - IP blocked',
                     url=search_url,
                     store_availability={'Trendyol': 'UNKNOWN'}
                 )]

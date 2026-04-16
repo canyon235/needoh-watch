@@ -1,5 +1,6 @@
 """
 Base scraper with shared logic for all store scrapers.
+Includes proxy support for stores that block datacenter IPs.
 """
 
 import requests
@@ -9,12 +10,16 @@ import re
 import os
 import random
 import json
+from urllib.parse import quote_plus
 from bs4 import BeautifulSoup
 from datetime import datetime
 
 USER_AGENT = os.getenv("USER_AGENT",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+
+# Cloudflare Worker proxy URL — set in Render environment variables
+PROXY_URL = os.getenv("PROXY_URL", "")
 
 HEADERS = {
     "User-Agent": USER_AGENT,
@@ -116,6 +121,28 @@ class BaseScraper:
                     time.sleep(delay)
                     continue
                 return None
+
+    def proxy_get(self, url, headers=None, timeout=20):
+        """Fetch a URL through the Cloudflare Worker proxy.
+        Used when direct requests are blocked by the retailer.
+        Returns a requests.Response-like object or None.
+        """
+        if not PROXY_URL:
+            return None
+
+        try:
+            # Build proxy URL with custom headers as params
+            proxy_params = f"?url={quote_plus(url)}"
+            if headers:
+                for key, value in headers.items():
+                    proxy_params += f"&h_{key}={quote_plus(value)}"
+
+            proxy_full = PROXY_URL.rstrip('/') + proxy_params
+            response = requests.get(proxy_full, timeout=timeout)
+            return response
+        except Exception as e:
+            print(f"  Proxy fetch failed: {e}")
+            return None
 
     def fetch_with_cookies(self, url, base_domain, timeout=15):
         """

@@ -1,13 +1,13 @@
 """
 Scraper for desertcart.ae - UAE e-commerce store.
-Uses API endpoint for search with HTML fallback.
+Uses API endpoint for search with proxy fallback for blocked IPs.
 """
 
 import requests
 import json
 import re
 from bs4 import BeautifulSoup
-from scrapers.base import BaseScraper, ScrapingResult, HEADERS
+from scrapers.base import BaseScraper, ScrapingResult, HEADERS, PROXY_URL
 
 
 class DesertcartScraper(BaseScraper):
@@ -74,34 +74,46 @@ class DesertcartScraper(BaseScraper):
 
     def _search_api(self, query):
         """
-        Search using the API endpoint.
+        Search using the API endpoint. Tries direct first, then proxy.
         Returns list of product data dicts or empty list on failure.
         """
-        try:
-            params = {"q": query}
-            url = f"{self.API_ENDPOINT}?q={query}"
+        url = f"{self.API_ENDPOINT}?q={query}"
 
+        # Try direct API call
+        try:
             response = self.session.get(
                 url,
                 headers=self.api_headers,
                 timeout=15
             )
             response.raise_for_status()
-
             data = response.json()
 
-            # Extract products from API response
             products = []
             if isinstance(data, dict) and "products" in data:
                 products = data.get("products", [])
             elif isinstance(data, list):
                 products = data
-
             return products
 
         except (requests.RequestException, json.JSONDecodeError, KeyError) as e:
-            print(f"API search failed for '{query}': {str(e)}")
-            return []
+            pass  # Direct failed, try proxy
+
+        # Try via proxy (Desertcart blocks datacenter IPs)
+        try:
+            proxy_resp = self.proxy_get(url, headers=self.api_headers, timeout=20)
+            if proxy_resp and proxy_resp.status_code == 200:
+                data = proxy_resp.json()
+                products = []
+                if isinstance(data, dict) and "products" in data:
+                    products = data.get("products", [])
+                elif isinstance(data, list):
+                    products = data
+                return products
+        except Exception:
+            pass
+
+        return []
 
     def _search_html(self, query):
         """
@@ -168,8 +180,7 @@ class DesertcartScraper(BaseScraper):
     def check_stock(self, url, product_name=None):
         """
         Check stock status for a Desertcart URL (search or product page).
-        Desertcart is a Next.js app, so HTML from requests may be minimal.
-        We try: 1) API search, 2) HTML parse, 3) return UNKNOWN for Playwright fallback.
+        Strategy: direct API → proxy HTML → UNKNOWN
         """
         try:
             # For search URLs, try the API approach first
@@ -178,7 +189,7 @@ class DesertcartScraper(BaseScraper):
                 term = url.split('/search/')[-1].split('?')[0]
                 search_query = term.replace('+', ' ')
 
-                # Try API endpoint
+                # Try API endpoint (direct)
                 api_products = self._search_api(search_query)
                 if api_products:
                     # Find a relevant result
@@ -211,13 +222,20 @@ class DesertcartScraper(BaseScraper):
                         url=url
                     )
 
-            # Try HTML page scraping
-            html = self.fetch_page(url, timeout=15)
+            # Try HTML page via proxy (Desertcart blocks datacenter IPs)
+            html = None
+            proxy_resp = self.proxy_get(url, timeout=20)
+            if proxy_resp and proxy_resp.status_code == 200:
+                html = proxy_resp.text
+
+            # Fallback to direct fetch
+            if not html:
+                html = self.fetch_page(url, timeout=15)
 
             if not html:
                 return ScrapingResult(
                     status='UNKNOWN',
-                    error='Failed to fetch Desertcart page (Next.js needs JS)',
+                    error='Failed to fetch Desertcart page',
                     url=url,
                     product_title=product_name
                 )
