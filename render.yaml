@@ -2,7 +2,7 @@ services:
   - type: web
     name: needoh-watch
     runtime: python
-    buildCommand: pip install -r requirements.txt && python -m playwright install chromium && python -m playwright install-deps
+    buildCommand: "pip install -r requirements.txt && python -m playwright install chromium && (python -m playwright install-deps chromium || true)"
     startCommand: python app.py --port $PORT --auto-check
     envVars:
       - key: EMAIL_ENABLED
