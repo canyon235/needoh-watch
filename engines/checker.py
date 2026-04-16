@@ -47,26 +47,39 @@ class StockChecker:
         }
 
     def run_check_cycle(self):
-        """Run one complete check cycle for all due listings."""
+        """Run one complete check cycle for all due listings.
+        Prioritizes fast stores (Amazon, Noon) first so dashboard updates quickly.
+        """
         listings = get_listings_due_for_check()
 
         if not listings:
             return self.stats
 
         timestamp = datetime.utcnow().strftime('%H:%M:%S')
-        print(f"\n[{timestamp}] Checking {len(listings)} listings...")
 
-        for listing in listings:
-            self._check_one(listing)
-            # Small delay between requests to be respectful
-            time.sleep(1)
+        # Separate fast (HTTP-only) vs slow (needs Playwright) stores
+        fast = [l for l in listings if l['store_name'] in ('Amazon.ae', 'Noon')]
+        slow = [l for l in listings if l['store_name'] not in ('Amazon.ae', 'Noon')]
+
+        print(f"\n[{timestamp}] Checking {len(listings)} listings "
+              f"({len(fast)} fast + {len(slow)} slow)...", flush=True)
+
+        # Check fast stores first (Amazon API + Noon mobile API = ~1-3s each)
+        for listing in fast:
+            self._check_one(listing, use_playwright=False)
+            time.sleep(0.5)
+
+        # Then slow stores (Desertcart/Trendyol - may need Playwright)
+        for listing in slow:
+            self._check_one(listing, use_playwright=True)
+            time.sleep(0.5)
 
         # Decay old sightings
         self.offline_engine.decay_old_sightings()
 
         return self.stats
 
-    def _check_one(self, listing):
+    def _check_one(self, listing, use_playwright=True):
         """Check a single listing."""
         store_name = listing['store_name']
         product_name = listing['canonical_name']
@@ -75,7 +88,7 @@ class StockChecker:
 
         scraper = self.scrapers.get(store_name)
         if not scraper:
-            print(f"  ⚠ No scraper for store: {store_name}")
+            print(f"  ⚠ No scraper for store: {store_name}", flush=True)
             return
 
         start_time = time.time()
@@ -84,12 +97,12 @@ class StockChecker:
             # Scrape (requests first, Playwright fallback for JS-heavy sites)
             result = scraper.check_stock(listing['url'], product_name)
 
-            # If result is UNKNOWN and Playwright is available, retry with browser
-            # (also retry when there's an error like Cloudflare block or JS-rendering failure)
+            # If result is UNKNOWN and Playwright is available + enabled, retry with browser
             if (result.status == 'UNKNOWN'
+                    and use_playwright
                     and self.playwright_scraper
                     and store_name in self.playwright_stores):
-                print(f"    ↻ Retrying {store_name} with Playwright...")
+                print(f"    ↻ Retrying {store_name} with Playwright...", flush=True)
                 pw_result = self.playwright_scraper.check_stock(listing['url'], product_name)
                 if pw_result.status != 'UNKNOWN':
                     result = pw_result
@@ -135,7 +148,7 @@ class StockChecker:
             changed_tag = " ← CHANGED!" if change['changed'] else ""
 
             print(f"  {icon} {product_name} @ {store_name}: "
-                  f"{final_status}{price_text} ({duration_ms}ms){changed_tag}")
+                  f"{final_status}{price_text} ({duration_ms}ms){changed_tag}", flush=True)
 
             # Evaluate for alerts
             if change['changed']:

@@ -11,6 +11,10 @@ Usage:
 
 import sys
 import os
+
+# Force unbuffered output so Render logs show checker progress in real time
+os.environ['PYTHONUNBUFFERED'] = '1'
+
 import json
 import threading
 import time
