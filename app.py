@@ -1055,29 +1055,46 @@ DASHBOARD_HTML = r"""
     <div class="toast" id="toast"></div>
 
 <script>
-// Product image mapping — verified against https://myneedoh.com
+// Product image mapping — 26 verified NeeDoh products
+// Sources: myneedoh.com, target.scene7.com, retailer CDNs
 const PRODUCT_IMAGES = {
-    'Nice Cube': 'https://myneedoh.com/wp-content/uploads/2025/08/717FM41-pPL._AC_SL1500_.jpg',
-    'Snowball': 'https://myneedoh.com/wp-content/uploads/2024/10/nd22.jpg',
-    'Dohnuts': 'https://m.media-amazon.com/images/I/61vwtW6gKEL._AC_SL1200_.jpg',
-    'Gummy Bear': 'https://myneedoh.com/wp-content/uploads/2025/08/714i4fiAGsL._AC_SL1500_.jpg',
-    'Fuzz Ball': 'https://m.media-amazon.com/images/I/71p0-4OOoYL._AC_SL1500_.jpg',
-    'Ramen': 'https://m.media-amazon.com/images/I/81fFRVzFhBL._AC_SL1500_.jpg',
-    'Cool Cats': 'https://m.media-amazon.com/images/I/51u0EcMcwwL._AC_SL1500_.jpg',
-    'Dig It Pig': 'https://myneedoh.com/wp-content/uploads/2024/10/nd12.jpg',
-    'Mac N Squeeze': 'https://myneedoh.com/wp-content/uploads/2024/10/nd10.jpg',
-    'Groovy Fruit': 'https://myneedoh.com/wp-content/uploads/2024/10/nd11.jpg',
-    'NeeDoh Blob': 'https://myneedoh.com/wp-content/uploads/2024/10/nd1.jpg',
-    'Super Needoh': 'https://myneedoh.com/wp-content/uploads/2024/10/nd4.jpg',
-    'Teenie': 'https://myneedoh.com/wp-content/uploads/2024/10/nd9.jpg',
+    'Classic':        'https://myneedoh.com/wp-content/uploads/2024/10/nd1.jpg',
+    'Nice Cube':      'https://myneedoh.com/wp-content/uploads/2025/08/717FM41-pPL._AC_SL1500_.jpg',
+    'Gummy Bear':     'https://myneedoh.com/wp-content/uploads/2025/08/714i4fiAGsL._AC_SL1500_.jpg',
+    'Cool Cats':      'https://target.scene7.com/is/image/Target/GUEST_56395569-b85d-47c3-ae68-204dab47e560?wid=800&hei=800&fmt=pjpeg',
+    'Gumdrop':        'https://myneedoh.com/wp-content/uploads/2025/08/51WofDcMjtL._AC_SL1080_.jpg',
+    'Dream Drop':     'https://myneedoh.com/wp-content/uploads/2025/08/71TMLfwRgxL._AC_SL1500_.jpg',
+    'Mac N Squeeze':  'https://myneedoh.com/wp-content/uploads/2024/10/nd10.jpg',
+    'Ramen':          'https://images.heb.com/is/image/HEBGrocery/006108553-1?jpegSize=150&hei=800&fit=constrain&qlt=75',
+    'Dig It Pig':     'https://myneedoh.com/wp-content/uploads/2024/10/nd12.jpg',
+    'Shaggy':         'https://myneedoh.com/wp-content/uploads/2024/10/nd11.jpg',
+    'Fuzz Ball':      'https://myneedoh.com/wp-content/uploads/2025/12/21.jpg',
+    'Stardust':       'https://myneedoh.com/wp-content/uploads/2024/10/nd7.jpg',
+    'Crystal':        'https://myneedoh.com/wp-content/uploads/2024/10/nd8.jpg',
+    'Marbleez':       'https://target.scene7.com/is/image/Target/GUEST_343f93b3-cdf8-44b9-95c9-5e7169a71257?wid=800&hei=800&fmt=pjpeg',
+    'Groovy Fruit':   'https://myneedoh.com/wp-content/uploads/2025/12/1.jpg',
+    'Snowball':       'https://myneedoh.com/wp-content/uploads/2025/12/31.jpg',
+    'Glow in the Dark':'https://castletoys.fun/cdn/shop/files/61oCR40KVdL.jpg?v=1767844776',
+    'Dohnuts':        'https://target.scene7.com/is/image/Target/GUEST_ddd5b15d-e5d6-4135-b4c7-c6e70c53246a?wid=800&hei=800&fmt=pjpeg',
+    'Nice-Sicle':     'https://www.rocketcitytoys.com/cdn/shop/files/NIND.jpg?v=1766956798&width=800',
+    'Color Change':   'https://target.scene7.com/is/image/Target/GUEST_9fe82a56-6d50-4bbb-a1d2-081ef6d9bf55?wid=800&hei=800&fmt=pjpeg',
+    'Dohjees':        'https://myneedoh.com/wp-content/uploads/2025/12/81.jpg',
+    'Panic Pete':     'https://childsplaytoyssf.com/cdn/shop/products/PPST-Panic-Pete-Squeeze-web-1536x1536_1250x1250.jpg?v=1614039497',
+    'Chickadeedoos':  'https://cdn11.bigcommerce.com/s-65gzldhg/images/stencil/1280x1280/products/8565/11515/chickadeedoos_blue_CDDND24__99485.1705010497.jpg?c=2',
+    'Jelly Squish':   'https://target.scene7.com/is/image/Target/GUEST_869ae457-32a8-4708-b6dc-cf45ede73fe7?wid=800&hei=800&fmt=pjpeg',
+    'Super NeeDoh':   'https://myneedoh.com/wp-content/uploads/2024/10/nd4.jpg',
+    'Teenie':         'https://myneedoh.com/wp-content/uploads/2024/10/nd9.jpg',
 };
 
-// Fallback emojis if image fails to load
+// Fallback emojis if image fails to load — all 26 products
 const PRODUCT_EMOJIS = {
-    'Nice Cube': '🧊', 'Snowball': '❄️', 'Dohnuts': '🍩',
-    'Gummy Bear': '🐻', 'Fuzz Ball': '🧸', 'Ramen': '🍜', 'Cool Cats': '🐱',
-    'Dig It Pig': '🐷', 'Mac N Squeeze': '🧀',
-    'Groovy Fruit': '🍇', 'NeeDoh Blob': '🫠', 'Super Needoh': '💪', 'Teenie': '🎯',
+    'Classic': '🫠', 'Nice Cube': '🧊', 'Gummy Bear': '🐻', 'Cool Cats': '🐱',
+    'Gumdrop': '🍬', 'Dream Drop': '💧', 'Mac N Squeeze': '🧀', 'Ramen': '🍜',
+    'Dig It Pig': '🐷', 'Shaggy': '🦁', 'Fuzz Ball': '🧸', 'Stardust': '⭐',
+    'Crystal': '💎', 'Marbleez': '🔮', 'Groovy Fruit': '🍇', 'Snowball': '❄️',
+    'Glow in the Dark': '🌙', 'Dohnuts': '🍩', 'Nice-Sicle': '🍦', 'Color Change': '🎨',
+    'Dohjees': '🎲', 'Panic Pete': '😱', 'Chickadeedoos': '🐣', 'Jelly Squish': '🍮',
+    'Super NeeDoh': '💪', 'Teenie': '🎯',
 };
 
 // Color rotation for product cards
@@ -1403,9 +1420,32 @@ if __name__ == '__main__':
         # Always ensure seed data exists
         seed_all()
 
-    # Database cleanup and migration on startup
+    # Database migration: ensure we have the correct 26 products × 4 stores = 104 listings
     try:
         with get_db() as conn:
+            product_count = conn.execute("SELECT COUNT(*) as cnt FROM products").fetchone()['cnt']
+            listing_count = conn.execute("SELECT COUNT(*) as cnt FROM listings").fetchone()['cnt']
+            store_count = conn.execute("SELECT COUNT(*) as cnt FROM stores").fetchone()['cnt']
+
+            # If product/store/listing counts don't match expected (26 products, 4 stores, 104 listings),
+            # wipe and re-seed to ensure clean state
+            if product_count != 26 or store_count != 4 or listing_count != 104:
+                print(f"  ⚠ DB has {product_count} products, {store_count} stores, {listing_count} listings")
+                print(f"    Expected: 26 products, 4 stores, 104 listings — wiping and re-seeding...")
+                conn.execute("DELETE FROM check_log")
+                conn.execute("DELETE FROM alerts")
+                conn.execute("DELETE FROM sightings")
+                conn.execute("DELETE FROM subscriptions")
+                conn.execute("DELETE FROM listings")
+                conn.execute("DELETE FROM stores")
+                conn.execute("DELETE FROM products")
+                print("  ✓ Cleared old data")
+                # Re-seed will happen below
+                seed_all()
+                print(f"  ✓ Re-seeded with 26 products × 4 stores = 104 listings")
+            else:
+                print(f"  ✓ DB OK: {product_count} products, {store_count} stores, {listing_count} listings")
+
             # Add delivery_estimate column if missing (migration)
             try:
                 conn.execute("SELECT delivery_estimate FROM listings LIMIT 1")
@@ -1413,47 +1453,13 @@ if __name__ == '__main__':
                 conn.execute("ALTER TABLE listings ADD COLUMN delivery_estimate TEXT")
                 print("  ✓ Added delivery_estimate column")
 
-            # Remove Virgin store and its listings (no longer supported)
-            virgin_store = conn.execute("SELECT id FROM stores WHERE name LIKE '%Virgin%'").fetchone()
-            if virgin_store:
-                conn.execute("DELETE FROM listings WHERE store_id = ?", (virgin_store['id'],))
-                conn.execute("DELETE FROM stores WHERE id = ?", (virgin_store['id'],))
-                print("  ✓ Removed Virgin store and listings")
-
-            # Remove Diddy Doh product (not a real NeeDoh product)
-            diddy = conn.execute("SELECT id FROM products WHERE canonical_name = 'Diddy Doh'").fetchone()
-            if diddy:
-                conn.execute("DELETE FROM listings WHERE product_id = ?", (diddy['id'],))
-                conn.execute("DELETE FROM products WHERE id = ?", (diddy['id'],))
-                print("  ✓ Removed Diddy Doh (not a real NeeDoh product)")
-
-            # Merge Nice Cube (Swirl) into Nice Cube if both exist
-            nice_cube_orig = conn.execute(
-                "SELECT id FROM products WHERE canonical_name = 'Nice Cube' AND variant = 'Original'"
-            ).fetchone()
-            nice_cube_swirl = conn.execute(
-                "SELECT id FROM products WHERE canonical_name = 'Nice Cube' AND variant = 'Swirl'"
-            ).fetchone()
-            if nice_cube_orig and nice_cube_swirl:
-                # Move Swirl listings to Original, then delete Swirl
-                conn.execute("UPDATE listings SET product_id = ? WHERE product_id = ?",
-                             (nice_cube_orig['id'], nice_cube_swirl['id']))
-                conn.execute("UPDATE products SET variant = NULL WHERE id = ?", (nice_cube_orig['id'],))
-                conn.execute("DELETE FROM products WHERE id = ?", (nice_cube_swirl['id'],))
-                print("  ✓ Merged Nice Cube variants into single product")
-
-            # Reset stale status data so scrapers re-check with improved matching
-            conn.execute("""
-                UPDATE listings SET stock_status = NULL, last_price = NULL,
-                last_checked_at = NULL WHERE stock_status IS NOT NULL
-            """)
-            print("  ✓ Reset listing statuses for fresh re-check")
     except Exception as e:
-        print(f"  ⚠ Database cleanup error: {e}")
+        print(f"  ⚠ Database migration error: {e}")
 
-    if args.auto_check:
-        bg_thread = threading.Thread(target=background_checker, args=(120,), daemon=True)
-        bg_thread.start()
+    # Always start background checker — this is a monitoring tool
+    bg_thread = threading.Thread(target=background_checker, args=(120,), daemon=True)
+    bg_thread.start()
+    print("  ✓ Background checker started (120s cycle, 104 listings)")
 
     print(f"\n{'='*50}")
     print(f"  🎯 NeeDoh Watch UAE")

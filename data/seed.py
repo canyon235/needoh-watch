@@ -1,7 +1,7 @@
 """
 Seed data for NeeDoh Watch MVP.
-13 verified NeeDoh SKUs across 4 UAE-accessible stores.
-Products verified against https://myneedoh.com
+26 verified NeeDoh products by Schylling, across 4 UAE-accessible stores.
+Products verified against schylling.com, myneedoh.com, and squeeze.toys
 """
 
 from data.database import init_db, get_db
@@ -9,19 +9,58 @@ import json
 
 
 PRODUCTS = [
-    {"canonical_name": "Nice Cube", "variant": None, "aliases": ["NeeDoh Nice Cube", "Schylling Nice Cube", "Nee Doh Nice Cube", "Nice Ice Baby", "Swirl Nice Cube"]},
-    {"canonical_name": "Snowball Crunch", "variant": None, "aliases": ["NeeDoh Snowball Crunch", "Snowball Crunch Needoh", "NeeDoh Snow Ball"]},
-    {"canonical_name": "Dohnuts", "variant": None, "aliases": ["NeeDoh Dohnuts", "Nee Doh Dohnuts", "Needoh Donuts"]},
-    {"canonical_name": "Teenie Needoh", "variant": "Pack", "aliases": ["Teenie Pack", "NeeDoh Teenie", "Mini Needoh", "Teenie Gobs of Globs", "Rainboh Teenie"]},
-    {"canonical_name": "Gummy Bear", "variant": None, "aliases": ["NeeDoh Gummy Bear", "Nee Doh Gummy Bear"]},
-    {"canonical_name": "Fuzz Ball", "variant": None, "aliases": ["NeeDoh Fuzz Ball", "Nee Doh Fuzz Ball", "Needoh Fuzzball"]},
-    {"canonical_name": "Ramen Noodlies", "variant": None, "aliases": ["NeeDoh Ramen Noodlies", "Nee Doh Ramen", "Needoh Ramen"]},
-    {"canonical_name": "Cool Cats", "variant": None, "aliases": ["NeeDoh Cool Cats", "Nee Doh Cool Cats"]},
-    {"canonical_name": "Dig It Pig", "variant": None, "aliases": ["NeeDoh Dig It Pig", "Nee Doh Pig"]},
-    {"canonical_name": "Mac N Squeeze", "variant": None, "aliases": ["NeeDoh Mac N Squeeze", "Mac and Squeeze", "Needoh Mac N Cheese"]},
-    {"canonical_name": "Groovy Fruit", "variant": None, "aliases": ["NeeDoh Groovy Fruit", "Nee Doh Groovy Fruit"]},
-    {"canonical_name": "NeeDoh Blob", "variant": "Original", "aliases": ["Nee Doh", "NeeDoh Original", "Schylling NeeDoh"]},
-    {"canonical_name": "Super Needoh", "variant": "Jumbo", "aliases": ["Super NeeDoh", "Jumbo Needoh", "Large Needoh"]},
+    # 0 - Classic
+    {"canonical_name": "NeeDoh Classic", "variant": "Groovy Glob", "aliases": ["NeeDoh Groovy Glob", "Nee Doh", "NeeDoh Original", "Schylling NeeDoh", "Groovy Glob"]},
+    # 1 - Nice Cube
+    {"canonical_name": "NeeDoh Nice Cube", "variant": None, "aliases": ["Nice Cube", "Nice Ice Baby", "Schylling Nice Cube", "Nee Doh Nice Cube"]},
+    # 2 - Gummy Bear
+    {"canonical_name": "NeeDoh Gummy Bear", "variant": None, "aliases": ["Gummy Bear NeeDoh", "Schylling Gummy Bear", "Nee Doh Gummy Bear"]},
+    # 3 - Cool Cats
+    {"canonical_name": "NeeDoh Cool Cats", "variant": None, "aliases": ["Cool Cats NeeDoh", "Schylling Cool Cats", "Nee Doh Cool Cats", "Super NeeDoh Cool Cats"]},
+    # 4 - Gumdrop
+    {"canonical_name": "NeeDoh Gumdrop", "variant": None, "aliases": ["Gumdrop NeeDoh", "Schylling Gumdrop", "Textured Gumdrop"]},
+    # 5 - Dream Drop
+    {"canonical_name": "NeeDoh Dream Drop", "variant": None, "aliases": ["Dream Drop NeeDoh", "Schylling Dream Drop", "Nee Doh Dream Drop"]},
+    # 6 - Mac N Squeeze
+    {"canonical_name": "NeeDoh Mac N Squeeze", "variant": None, "aliases": ["Mac N Squeeze", "Mac and Squeeze", "Needoh Mac N Cheese", "Mac N Squeeze NeeDoh"]},
+    # 7 - Ramen Noodlies
+    {"canonical_name": "NeeDoh Ramen Noodlies", "variant": None, "aliases": ["Ramen Noodlies", "Nee Doh Ramen", "Needoh Ramen", "Noodlies NeeDoh"]},
+    # 8 - Dig It Pig
+    {"canonical_name": "NeeDoh Dig It Pig", "variant": None, "aliases": ["Dig It Pig", "Nee Doh Pig", "NeeDoh Pig"]},
+    # 9 - Shaggy
+    {"canonical_name": "NeeDoh Shaggy", "variant": None, "aliases": ["Shaggy NeeDoh", "Shaggy Groovy Glob", "Nee Doh Shaggy"]},
+    # 10 - Fuzz Ball
+    {"canonical_name": "NeeDoh Fuzz Ball", "variant": None, "aliases": ["Fuzz Ball", "Nee Doh Fuzz Ball", "Needoh Fuzzball", "Teenie Fuzz Ball"]},
+    # 11 - Stardust
+    {"canonical_name": "NeeDoh Stardust", "variant": None, "aliases": ["Stardust NeeDoh", "Stardust Shimmer", "Nee Doh Stardust"]},
+    # 12 - Crystal
+    {"canonical_name": "NeeDoh Crystal", "variant": None, "aliases": ["Crystal NeeDoh", "Nee Doh Crystal"]},
+    # 13 - Marbleez
+    {"canonical_name": "NeeDoh Marbleez", "variant": None, "aliases": ["Marbleez NeeDoh", "Mellow Marble NeeDoh", "Nee Doh Marbleez"]},
+    # 14 - Groovy Fruit
+    {"canonical_name": "NeeDoh Groovy Fruit", "variant": None, "aliases": ["Groovy Fruit", "Nee Doh Groovy Fruit", "Fruit NeeDoh"]},
+    # 15 - Snowball Crunch
+    {"canonical_name": "NeeDoh Snowball Crunch", "variant": None, "aliases": ["Snowball Crunch", "Snow Ball NeeDoh", "Nee Doh Snowball"]},
+    # 16 - Glow in the Dark
+    {"canonical_name": "NeeDoh Glow in the Dark", "variant": None, "aliases": ["Glow in the Dark NeeDoh", "Glow NeeDoh", "Nee Doh Glow"]},
+    # 17 - Dohnuts
+    {"canonical_name": "NeeDoh Dohnuts", "variant": None, "aliases": ["Dohnuts", "Jelly Donut NeeDoh", "Nee Doh Dohnuts", "Needoh Donuts", "Dohnut Holes"]},
+    # 18 - Nice-Sicle
+    {"canonical_name": "NeeDoh Nice-Sicle", "variant": None, "aliases": ["Nice-Sicle", "Nice Sicle NeeDoh", "Nee Doh Popsicle"]},
+    # 19 - Color Change Cube
+    {"canonical_name": "NeeDoh Color Change Cube", "variant": None, "aliases": ["Color Change Cube", "Colour Changing Cube", "Color Changing NeeDoh"]},
+    # 20 - Dohjees
+    {"canonical_name": "NeeDoh Dohjees", "variant": None, "aliases": ["Dohjees", "NeeDoh Collectible", "Nee Doh Dohjees"]},
+    # 21 - Panic Pete
+    {"canonical_name": "NeeDoh Panic Pete", "variant": None, "aliases": ["Panic Pete", "Panic Pete NeeDoh", "Nee Doh Panic Pete"]},
+    # 22 - Chickadeedoos
+    {"canonical_name": "NeeDoh Chickadeedoos", "variant": None, "aliases": ["Chickadeedoos", "Chickadee NeeDoh", "Nee Doh Chickadeedoos"]},
+    # 23 - Jelly Squish
+    {"canonical_name": "NeeDoh Jelly Squish", "variant": None, "aliases": ["Jelly Squish", "Jelly NeeDoh", "Nee Doh Jelly Squish"]},
+    # 24 - Super NeeDoh
+    {"canonical_name": "Super NeeDoh", "variant": "Jumbo", "aliases": ["Super NeeDoh", "Jumbo Needoh", "Large Needoh", "Super Nee Doh"]},
+    # 25 - Teenie
+    {"canonical_name": "NeeDoh Teenie", "variant": "Pack", "aliases": ["Teenie Pack", "Teenie NeeDoh", "Mini Needoh", "Teenie Gobs of Globs", "Rainboh Teenie", "Hot Shot Teenie"]},
 ]
 
 STORES = [
@@ -59,53 +98,57 @@ STORES = [
     },
 ]
 
-# Product URLs per store (real search/category pages)
+# Generate listings: every product on every store
 # Store indices: 0=Amazon.ae, 1=Noon, 2=Desertcart, 3=Trendyol
-LISTINGS = [
-    # Amazon.ae listings (store_idx=0)
-    {"product_idx": 0, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+nice+cube"},
-    {"product_idx": 1, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+snowball+crunch"},
-    {"product_idx": 2, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+dohnuts"},
-    {"product_idx": 3, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+teenie"},
-    {"product_idx": 4, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+gummy+bear"},
-    {"product_idx": 5, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+fuzz+ball"},
-    {"product_idx": 6, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+ramen+noodlies"},
-    {"product_idx": 7, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+cool+cats"},
-    {"product_idx": 8, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+dig+it+pig"},
-    {"product_idx": 9, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+mac+n+squeeze"},
-    {"product_idx": 10, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh+groovy+fruit"},
-    {"product_idx": 11, "store_idx": 0, "url": "https://www.amazon.ae/s?k=needoh"},
-    {"product_idx": 12, "store_idx": 0, "url": "https://www.amazon.ae/s?k=super+needoh"},
+SEARCH_TERMS = {
+    0: "needoh",               # NeeDoh Classic
+    1: "needoh+nice+cube",     # Nice Cube
+    2: "needoh+gummy+bear",    # Gummy Bear
+    3: "needoh+cool+cats",     # Cool Cats
+    4: "needoh+gumdrop",       # Gumdrop
+    5: "needoh+dream+drop",    # Dream Drop
+    6: "needoh+mac+n+squeeze", # Mac N Squeeze
+    7: "needoh+ramen+noodlies",# Ramen Noodlies
+    8: "needoh+dig+it+pig",    # Dig It Pig
+    9: "needoh+shaggy",        # Shaggy
+    10: "needoh+fuzz+ball",    # Fuzz Ball
+    11: "needoh+stardust",     # Stardust
+    12: "needoh+crystal",      # Crystal
+    13: "needoh+marbleez",     # Marbleez
+    14: "needoh+groovy+fruit", # Groovy Fruit
+    15: "needoh+snowball+crunch", # Snowball Crunch
+    16: "needoh+glow+in+the+dark", # Glow in the Dark
+    17: "needoh+dohnuts",      # Dohnuts
+    18: "needoh+nice+sicle",   # Nice-Sicle
+    19: "needoh+color+change+cube", # Color Change Cube
+    20: "needoh+dohjees",      # Dohjees
+    21: "needoh+panic+pete",   # Panic Pete
+    22: "needoh+chickadeedoos",# Chickadeedoos
+    23: "needoh+jelly+squish", # Jelly Squish
+    24: "super+needoh",        # Super NeeDoh
+    25: "needoh+teenie",       # Teenie
+}
 
-    # Noon listings (store_idx=1)
-    {"product_idx": 0, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+nice+cube"},
-    {"product_idx": 1, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+snowball+crunch"},
-    {"product_idx": 2, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+dohnuts"},
-    {"product_idx": 3, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+teenie"},
-    {"product_idx": 4, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+gummy+bear"},
-    {"product_idx": 5, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+fuzz+ball"},
-    {"product_idx": 6, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh+ramen"},
-    {"product_idx": 11, "store_idx": 1, "url": "https://www.noon.com/uae-en/search/?q=needoh"},
+STORE_URL_TEMPLATES = {
+    0: "https://www.amazon.ae/s?k={term}",
+    1: "https://www.noon.com/uae-en/search/?q={term}",
+    2: "https://www.desertcart.ae/search/{term}",
+    3: "https://www.trendyol.com/sr?q={term}",
+}
 
-    # Desertcart listings (store_idx=2) — JS-rendered, uses Playwright
-    {"product_idx": 0, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+nice+cube"},
-    {"product_idx": 1, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+snowball"},
-    {"product_idx": 2, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+dohnuts"},
-    {"product_idx": 3, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+teenie"},
-    {"product_idx": 4, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+gummy+bear"},
-    {"product_idx": 5, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+fuzz+ball"},
-    {"product_idx": 6, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh+ramen"},
-    {"product_idx": 11, "store_idx": 2, "url": "https://www.desertcart.ae/search/needoh"},
-    {"product_idx": 12, "store_idx": 2, "url": "https://www.desertcart.ae/search/super+needoh"},
+def _generate_listings():
+    """Generate all product×store listing combinations."""
+    listings = []
+    for product_idx, term in SEARCH_TERMS.items():
+        for store_idx, url_template in STORE_URL_TEMPLATES.items():
+            listings.append({
+                "product_idx": product_idx,
+                "store_idx": store_idx,
+                "url": url_template.format(term=term),
+            })
+    return listings
 
-    # Trendyol listings (store_idx=3) — Cloudflare-protected, uses Playwright
-    {"product_idx": 0, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+nice+cube"},
-    {"product_idx": 4, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+gummy+bear"},
-    {"product_idx": 5, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+fuzz+ball"},
-    {"product_idx": 11, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh"},
-    {"product_idx": 2, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=needoh+dohnuts"},
-    {"product_idx": 12, "store_idx": 3, "url": "https://www.trendyol.com/sr?q=super+needoh"},
-]
+LISTINGS = _generate_listings()
 
 
 def seed_all():
@@ -147,7 +190,7 @@ def seed_all():
                 "INSERT INTO listings (product_id, store_id, url) VALUES (?, ?, ?)",
                 (product_ids[l['product_idx']], store_ids[l['store_idx']], l['url'])
             )
-        print(f"✓ Seeded {len(LISTINGS)} listings")
+        print(f"✓ Seeded {len(LISTINGS)} listings ({len(PRODUCTS)} products × {len(STORES)} stores)")
 
     print("\n✓ Database seeded successfully!")
 
