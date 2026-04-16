@@ -3,6 +3,7 @@ Base scraper with shared logic for all store scrapers.
 """
 
 import requests
+import cloudscraper
 import time
 import re
 import os
@@ -72,7 +73,11 @@ class BaseScraper:
     STORE_NAME = "base"
 
     def __init__(self):
-        self.session = requests.Session()
+        # Use cloudscraper instead of plain requests — handles Cloudflare
+        # and basic anti-bot protection automatically. Drop-in replacement.
+        self.session = cloudscraper.create_scraper(
+            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+        )
         self.session.headers.update(HEADERS)
 
     def fetch_page(self, url, timeout=15):

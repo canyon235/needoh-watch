@@ -234,6 +234,50 @@ def api_alerts():
     return jsonify([dict(a) for a in alerts])
 
 
+@app.route('/api/diagnostics')
+def api_diagnostics():
+    """Show system diagnostics — useful for debugging."""
+    import shutil
+    try:
+        from scrapers.playwright_scraper import HAS_PLAYWRIGHT
+    except ImportError:
+        HAS_PLAYWRIGHT = False
+
+    diag = {
+        'playwright_available': HAS_PLAYWRIGHT,
+        'python_version': __import__('sys').version,
+        'background_running': bg_running,
+        'check_interval': 600,
+        'timestamp': datetime.utcnow().isoformat(),
+    }
+
+    # Check if chromium binary exists
+    import subprocess
+    try:
+        result = subprocess.run(['python', '-m', 'playwright', 'install', '--dry-run'],
+                              capture_output=True, text=True, timeout=5)
+        diag['playwright_install_info'] = result.stdout[:500] if result.stdout else result.stderr[:500]
+    except Exception as e:
+        diag['playwright_install_info'] = str(e)[:200]
+
+    # Memory info
+    try:
+        import resource
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        diag['memory_mb'] = round(usage.ru_maxrss / 1024, 1)  # Linux: KB -> MB
+    except Exception:
+        pass
+
+    # Disk info
+    try:
+        disk = shutil.disk_usage('/')
+        diag['disk_free_mb'] = round(disk.free / 1024 / 1024, 1)
+    except Exception:
+        pass
+
+    return jsonify(diag)
+
+
 @app.route('/api/email-subscribe', methods=['POST'])
 def api_email_subscribe():
     """Subscribe email to product alerts."""
@@ -293,7 +337,7 @@ def start_background():
     global bg_thread, bg_running
     if bg_running:
         return jsonify({'status': 'already_running'})
-    interval = request.json.get('interval', 120) if request.json else 120
+    interval = request.json.get('interval', 600) if request.json else 600
     bg_thread = threading.Thread(target=background_checker, args=(interval,), daemon=True)
     bg_thread.start()
     return jsonify({'status': 'started', 'interval': interval})
@@ -1461,9 +1505,9 @@ if __name__ == '__main__':
         print(f"  ⚠ Database migration error: {e}")
 
     # Always start background checker — this is a monitoring tool
-    bg_thread = threading.Thread(target=background_checker, args=(120,), daemon=True)
+    bg_thread = threading.Thread(target=background_checker, args=(600,), daemon=True)
     bg_thread.start()
-    print("  ✓ Background checker started (120s cycle, 104 listings)")
+    print("  ✓ Background checker started (10 min cycle, 104 listings)")
 
     print(f"\n{'='*50}")
     print(f"  🎯 NeeDoh Watch UAE")

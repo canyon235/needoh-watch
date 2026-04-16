@@ -9,6 +9,7 @@ import json
 import time
 import random
 import requests
+import cloudscraper
 from scrapers.base import BaseScraper, ScrapingResult
 
 
@@ -41,6 +42,10 @@ class NoonScraper(BaseScraper):
     def __init__(self):
         super().__init__()
         self.api_base = "https://www.noon.com/_svc/catalog/api/v3/u/"
+        # Dedicated cloudscraper session for Noon API calls
+        self._cs = cloudscraper.create_scraper(
+            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+        )
 
     def check_stock(self, url, product_name=None):
         """Check stock on Noon UAE.
@@ -95,11 +100,12 @@ class NoonScraper(BaseScraper):
             # Build API URL — use the raw search term (with + for spaces)
             api_url = f"{self.api_base}search/?q={search_term}&locale=en-ae"
 
-            # Use a fresh session with mobile headers to avoid interference
-            response = requests.get(
+            # Quick try with cloudscraper — Noon blocks datacenter IPs
+            # so this usually fails. Short timeout so Playwright handles it.
+            response = self._cs.get(
                 api_url,
                 headers=self.MOBILE_HEADERS,
-                timeout=6
+                timeout=3
             )
 
             if response.status_code != 200:
@@ -199,10 +205,10 @@ class NoonScraper(BaseScraper):
             # Try the web API endpoint (different from mobile)
             api_url = f"https://www.noon.com/_svc/catalog/api/v3/u/search/?q={search_term}&locale=en-ae&limit=20"
 
-            response = requests.get(
+            response = self._cs.get(
                 api_url,
                 headers=self.WEB_API_HEADERS,
-                timeout=8
+                timeout=3
             )
 
             if response.status_code != 200:
@@ -270,7 +276,7 @@ class NoonScraper(BaseScraper):
         try:
             from bs4 import BeautifulSoup
 
-            response = requests.get(
+            response = self._cs.get(
                 url,
                 headers=self.WEB_API_HEADERS,
                 timeout=10
@@ -332,7 +338,7 @@ class NoonScraper(BaseScraper):
             sku = sku_match.group(1)
             try:
                 api_url = f"{self.api_base}product/{sku}?locale=en-ae"
-                response = requests.get(api_url, headers=self.MOBILE_HEADERS, timeout=12)
+                response = self._cs.get(api_url, headers=self.MOBILE_HEADERS, timeout=12)
                 if response.status_code == 200:
                     data = response.json()
                     product = data.get('product', data)
