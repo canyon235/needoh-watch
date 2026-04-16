@@ -27,16 +27,40 @@ class NoonScraper(BaseScraper):
         'Connection': 'keep-alive',
     }
 
+    # Web API headers — lighter than mobile, works from datacenter IPs
+    WEB_API_HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-AE,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate',
+        'Referer': 'https://www.noon.com/',
+        'Origin': 'https://www.noon.com',
+        'Connection': 'keep-alive',
+    }
+
     def __init__(self):
         super().__init__()
         self.api_base = "https://www.noon.com/_svc/catalog/api/v3/u/"
+        # Alternative API base (sometimes more accessible)
+        self.api_base_alt = "https://www.noon.com/uae-en/_svc/catalog/api/v3/u/"
 
     def check_stock(self, url, product_name=None):
-        """Check stock on Noon UAE. Uses mobile API first (most reliable)."""
+        """Check stock on Noon UAE. Tries multiple API approaches."""
 
         # Always try mobile API first for search queries
         if 'search' in url or 'q=' in url:
+            # Try mobile API first (most data)
             result = self._mobile_api_search(url, product_name)
+            if result and result.status != 'UNKNOWN':
+                return result
+
+            # Try web API as fallback (different IP reputation)
+            result = self._web_api_search(url, product_name)
+            if result and result.status != 'UNKNOWN':
+                return result
+
+            # Try HTML scraping as last resort
+            result = self._html_search(url, product_name)
             if result and result.status != 'UNKNOWN':
                 return result
 
@@ -47,7 +71,7 @@ class NoonScraper(BaseScraper):
         # Last resort: return UNKNOWN with helpful error
         return ScrapingResult(
             status='UNKNOWN',
-            error='Noon API temporarily unavailable',
+            error='All Noon methods failed (API + HTML)',
             url=url
         )
 
@@ -75,7 +99,7 @@ class NoonScraper(BaseScraper):
             response = requests.get(
                 api_url,
                 headers=self.MOBILE_HEADERS,
-                timeout=12
+                timeout=6
             )
 
             if response.status_code != 200:
@@ -154,10 +178,150 @@ class NoonScraper(BaseScraper):
         except requests.Timeout:
             return ScrapingResult(
                 status='UNKNOWN',
-                error='Noon API timed out',
+                error='Noon mobile API timed out',
                 url=url
             )
         except Exception as e:
+            return None
+
+    def _web_api_search(self, url, product_name):
+        """Fallback: Use Noon's web catalog API with browser-like headers."""
+        try:
+            query = re.search(r'[?&]q=([^&]+)', url)
+            if not query:
+                if product_name:
+                    search_term = product_name.replace(' ', '+')
+                else:
+                    return None
+            else:
+                search_term = query.group(1)
+
+            # Try the web API endpoint (different from mobile)
+            api_url = f"https://www.noon.com/_svc/catalog/api/v3/u/search/?q={search_term}&locale=en-ae&limit=20"
+
+            response = requests.get(
+                api_url,
+                headers=self.WEB_API_HEADERS,
+                timeout=8
+            )
+
+            if response.status_code != 200:
+                return None
+
+            data = response.json()
+            hits = data.get('hits', [])
+            display_term = search_term.replace('+', ' ')
+
+            if not hits:
+                return ScrapingResult(
+                    status='OUT_OF_STOCK',
+                    raw_text=f'No results for "{display_term}" on Noon (web API)',
+                    url=url
+                )
+
+            # Find best match (same logic as mobile)
+            for hit in hits[:10]:
+                title = hit.get('name', '') or hit.get('title', '')
+                if not self._is_relevant(title, product_name or display_term):
+                    continue
+
+                price = hit.get('sale_price') or hit.get('price')
+                offer_price = hit.get('offer_price')
+                actual_price = offer_price or price
+                is_buyable = hit.get('is_buyable', False)
+
+                status = 'IN_STOCK' if is_buyable else 'OUT_OF_STOCK'
+                stock_text = hit.get('stock_text', '')
+                if stock_text and ('few left' in stock_text.lower() or 'limited' in stock_text.lower()):
+                    status = 'LOW_STOCK'
+
+                product_url = hit.get('url', '')
+                if product_url and not product_url.startswith('http'):
+                    product_url = f"https://www.noon.com/uae-en/{product_url}"
+
+                delivery_estimate = None
+                delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
+                if delivery_text:
+                    delivery_estimate = delivery_text
+
+                return ScrapingResult(
+                    status=status,
+                    price=float(actual_price) if actual_price else None,
+                    product_title=title,
+                    seller=hit.get('seller_name'),
+                    raw_text=json.dumps({'title': title, 'price': actual_price, 'source': 'web_api'}),
+                    url=product_url or url,
+                    delivery_estimate=delivery_estimate
+                )
+
+            return ScrapingResult(
+                status='OUT_OF_STOCK',
+                raw_text=f'No matching "{display_term}" on Noon (web API)',
+                url=url
+            )
+
+        except requests.Timeout:
+            return None
+        except Exception:
+            return None
+
+    def _html_search(self, url, product_name):
+        """Last resort: scrape the HTML search results page directly."""
+        try:
+            from bs4 import BeautifulSoup
+
+            response = requests.get(
+                url,
+                headers=self.WEB_API_HEADERS,
+                timeout=10
+            )
+
+            if response.status_code != 200:
+                return None
+
+            html = response.text
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Check for __NEXT_DATA__ JSON (Next.js apps embed data in a script tag)
+            next_data = soup.find('script', id='__NEXT_DATA__')
+            if next_data:
+                try:
+                    data = json.loads(next_data.string)
+                    page_props = data.get('props', {}).get('pageProps', {})
+                    catalog = page_props.get('catalog', {}) or page_props.get('searchResult', {})
+                    hits = catalog.get('hits', []) or catalog.get('products', [])
+
+                    if hits:
+                        for hit in hits[:10]:
+                            title = hit.get('name', '') or hit.get('title', '')
+                            if product_name and not self._is_relevant(title, product_name):
+                                continue
+                            price = hit.get('sale_price') or hit.get('price')
+                            is_buyable = hit.get('is_buyable', True)
+
+                            return ScrapingResult(
+                                status='IN_STOCK' if is_buyable and price else 'OUT_OF_STOCK',
+                                price=float(price) if price else None,
+                                product_title=title,
+                                seller=hit.get('seller_name'),
+                                raw_text=f'Noon HTML/NEXT_DATA: {title}',
+                                url=url
+                            )
+                except (json.JSONDecodeError, KeyError):
+                    pass
+
+            # Fallback: check page text for stock indicators
+            page_text = soup.get_text(' ', strip=True).lower()
+            if 'no results' in page_text or '0 results' in page_text:
+                return ScrapingResult(
+                    status='OUT_OF_STOCK',
+                    raw_text='No results found on Noon HTML page',
+                    url=url
+                )
+
+            return None  # Could not determine from HTML
+
+        except Exception:
             return None
 
     def _check_product_page(self, url, product_name):

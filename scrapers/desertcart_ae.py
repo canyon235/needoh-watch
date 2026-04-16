@@ -167,42 +167,106 @@ class DesertcartScraper(BaseScraper):
 
     def check_stock(self, url, product_name=None):
         """
-        Check stock status for a specific product URL.
-        Returns ScrapingResult object.
+        Check stock status for a Desertcart URL (search or product page).
+        Desertcart is a Next.js app, so HTML from requests may be minimal.
+        We try: 1) API search, 2) HTML parse, 3) return UNKNOWN for Playwright fallback.
         """
         try:
+            # For search URLs, try the API approach first
+            if '/search/' in url:
+                # Extract search term from URL like /search/needoh+nice+cube
+                term = url.split('/search/')[-1].split('?')[0]
+                search_query = term.replace('+', ' ')
+
+                # Try API endpoint
+                api_products = self._search_api(search_query)
+                if api_products:
+                    # Find a relevant result
+                    for p in api_products[:10]:
+                        title = p.get('title', '') or p.get('name', '')
+                        if product_name and not self._is_match(title, product_name):
+                            continue
+                        price = p.get('price')
+                        if isinstance(price, str):
+                            price = self.parse_price(price)
+                        in_stock = p.get('in_stock', True)
+                        p_url = p.get('url', url)
+                        if p_url and not p_url.startswith('http'):
+                            p_url = f"{self.BASE_URL}{p_url}"
+
+                        return ScrapingResult(
+                            status='IN_STOCK' if in_stock and price else 'OUT_OF_STOCK',
+                            price=float(price) if price else None,
+                            currency='AED',
+                            seller='Desertcart',
+                            product_title=title,
+                            url=p_url or url,
+                            raw_text=f'Desertcart API: {title}'
+                        )
+
+                    # API had results but none matched
+                    return ScrapingResult(
+                        status='OUT_OF_STOCK',
+                        raw_text=f'No matching NeeDoh "{search_query}" on Desertcart API',
+                        url=url
+                    )
+
+            # Try HTML page scraping
             html = self.fetch_page(url, timeout=15)
 
             if not html:
                 return ScrapingResult(
                     status='UNKNOWN',
-                    error='Failed to fetch product page',
+                    error='Failed to fetch Desertcart page (Next.js needs JS)',
                     url=url,
                     product_title=product_name
                 )
 
             soup = BeautifulSoup(html, "html.parser")
 
-            # Extract title
+            # Check for __NEXT_DATA__ (Next.js embeds data here)
+            next_data_tag = soup.find('script', id='__NEXT_DATA__')
+            if next_data_tag:
+                try:
+                    data = json.loads(next_data_tag.string)
+                    # Try to find products in the Next.js data
+                    props = data.get('props', {}).get('pageProps', {})
+                    products = props.get('products', []) or props.get('searchResults', []) or props.get('items', [])
+
+                    for p in products[:10]:
+                        title = p.get('title', '') or p.get('name', '')
+                        if product_name and not self._is_match(title, product_name):
+                            continue
+                        price = p.get('price') or p.get('salePrice')
+                        in_stock = not p.get('outOfStock', False)
+
+                        return ScrapingResult(
+                            status='IN_STOCK' if in_stock and price else 'OUT_OF_STOCK',
+                            price=float(price) if price else None,
+                            currency='AED',
+                            seller='Desertcart',
+                            product_title=title,
+                            url=url,
+                            raw_text=f'Desertcart NEXT_DATA: {title}'
+                        )
+                except (json.JSONDecodeError, KeyError):
+                    pass
+
+            # Standard HTML parsing fallback
             title_elem = soup.find(["h1", "h2"], class_=re.compile("title|heading|name", re.I))
             title = title_elem.get_text(strip=True) if title_elem else product_name
 
-            # Extract price
             price_elem = soup.find(["span", "div"], class_=re.compile("price|cost", re.I))
             price_text = price_elem.get_text(strip=True) if price_elem else None
             price = self.parse_price(price_text)
 
-            # Determine stock status
             page_text = soup.get_text(strip=True).lower()
-            raw_html_section = str(soup.find(["div", "section"], class_=re.compile("availability|stock", re.I)))
 
             indicators = {
                 'out_of_stock_text': 'out of stock' in page_text or 'currently unavailable' in page_text,
                 'add_to_cart': 'add to cart' in page_text,
                 'buy_now': 'buy now' in page_text,
                 'price_visible': price is not None,
-                'limited_stock': 'limited' in page_text and 'stock' in page_text,
-                'currently_unavailable': 'currently unavailable' in page_text,
             }
 
             status = self.normalize_status(indicators)
@@ -214,16 +278,27 @@ class DesertcartScraper(BaseScraper):
                 seller='Desertcart',
                 product_title=title,
                 url=url,
-                raw_text=html[:1000]  # First 1000 chars for AI analysis
+                raw_text=html[:500]
             )
 
         except Exception as e:
             return ScrapingResult(
                 status='UNKNOWN',
-                error=f'Exception: {str(e)}',
+                error=f'Exception: {str(e)[:200]}',
                 url=url,
                 product_title=product_name
             )
+
+    def _is_match(self, title, product_name):
+        """Check if a product title matches what we're looking for."""
+        if not title or not product_name:
+            return True
+        title_lower = title.lower()
+        keywords = [w for w in product_name.lower().split() if len(w) > 2]
+        if not keywords:
+            return True
+        matches = sum(1 for kw in keywords if kw in title_lower)
+        return matches >= max(1, len(keywords) * 0.4)
 
     def scrape_product(self, product_name):
         """

@@ -1,11 +1,15 @@
 """
-Playwright-based scraper for JS-heavy sites (Noon, Virgin).
+Playwright-based scraper for JS-heavy sites (Desertcart, Trendyol).
 Falls back to this when requests+BeautifulSoup can't get enough data.
+
+Uses ThreadPoolExecutor to run sync Playwright in a separate thread,
+avoiding "Sync API inside asyncio loop" errors when Flask uses asyncio.
 """
 
 import re
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from scrapers.base import BaseScraper, ScrapingResult
 
 try:
@@ -16,52 +20,60 @@ except ImportError:
 
 
 class PlaywrightScraper(BaseScraper):
-    """Scraper using headless Chromium for JS-rendered pages."""
+    """Scraper using headless Chromium for JS-rendered pages.
+    Runs in a dedicated thread to avoid asyncio conflicts."""
 
     STORE_NAME = "playwright"
 
     def __init__(self):
         super().__init__()
-        self._browser = None
-        self._playwright = None
-
-    def _get_browser(self):
-        if not HAS_PLAYWRIGHT:
-            return None
-        if not self._browser:
-            self._playwright = sync_playwright().start()
-            self._browser = self._playwright.chromium.launch(
-                headless=True,
-                args=['--no-sandbox', '--disable-dev-shm-usage']
-            )
-        return self._browser
+        # Single-threaded executor — Playwright is NOT thread-safe,
+        # so all calls are serialized through one worker thread.
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='playwright')
 
     def close(self):
-        if self._browser:
-            self._browser.close()
-            self._browser = None
-        if self._playwright:
-            self._playwright.stop()
-            self._playwright = None
+        """Shut down the executor (browser closes with the thread)."""
+        self._executor.shutdown(wait=False)
 
     def check_stock(self, url, product_name=None):
-        """Check stock using headless browser."""
+        """Check stock using headless browser in a separate thread."""
         if not HAS_PLAYWRIGHT:
             return ScrapingResult(
                 status='UNKNOWN',
-                error='Playwright not installed. Run: pip install playwright && python -m playwright install chromium',
+                error='Playwright not installed',
                 url=url
             )
 
-        browser = self._get_browser()
-        if not browser:
-            return ScrapingResult(status='UNKNOWN', error='Could not start browser', url=url)
+        try:
+            future = self._executor.submit(self._check_stock_sync, url, product_name)
+            return future.result(timeout=35)  # 35s hard cap
+        except FuturesTimeout:
+            return ScrapingResult(
+                status='UNKNOWN',
+                error='Playwright timed out (35s)',
+                url=url
+            )
+        except Exception as e:
+            return ScrapingResult(
+                status='UNKNOWN',
+                error=f'Playwright thread error: {str(e)[:200]}',
+                url=url
+            )
 
+    def _check_stock_sync(self, url, product_name):
+        """Actual Playwright work — runs in a clean thread without asyncio loop."""
+        pw = None
+        browser = None
         page = None
         try:
             start = time.time()
+            pw = sync_playwright().start()
+            browser = pw.chromium.launch(
+                headless=True,
+                args=['--no-sandbox', '--disable-dev-shm-usage']
+            )
             page = browser.new_page(
-                user_agent=self.session.headers.get('User-Agent', ''),
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 viewport={'width': 1280, 'height': 800}
             )
             page.set_default_timeout(20000)
@@ -89,7 +101,14 @@ class PlaywrightScraper(BaseScraper):
             return ScrapingResult(status='UNKNOWN', error=f'Playwright error: {str(e)[:200]}', url=url)
         finally:
             if page:
-                page.close()
+                try: page.close()
+                except: pass
+            if browser:
+                try: browser.close()
+                except: pass
+            if pw:
+                try: pw.stop()
+                except: pass
 
     def _parse_noon(self, page, page_text, page_html, url, product_name, duration):
         """Parse Noon page rendered with JS."""
