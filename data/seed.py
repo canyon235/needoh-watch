@@ -1,6 +1,6 @@
 """
 Seed data for NeeDoh Watch MVP.
-26 verified NeeDoh products by Schylling, across 4 UAE-accessible stores.
+26 verified NeeDoh products by Schylling, across 3 UAE stores.
 Products verified against schylling.com, myneedoh.com, and squeeze.toys
 """
 
@@ -81,25 +81,17 @@ STORES = [
         "check_interval_minutes": 5
     },
     {
-        "name": "Desertcart",
+        "name": "Ubuy",
         "type": "online",
         "city": "UAE",
-        "base_url": "https://www.desertcart.ae",
+        "base_url": "https://www.ubuy.ae",
         "supports_store_check": 0,
         "check_interval_minutes": 10
-    },
-    {
-        "name": "Trendyol",
-        "type": "online",
-        "city": "UAE",
-        "base_url": "https://www.trendyol.com",
-        "supports_store_check": 0,
-        "check_interval_minutes": 15
     },
 ]
 
 # Generate listings: every product on every store
-# Store indices: 0=Amazon.ae, 1=Noon, 2=Desertcart, 3=Trendyol
+# Store indices: 0=Amazon.ae, 1=Noon, 2=Ubuy
 SEARCH_TERMS = {
     0: "needoh",               # NeeDoh Classic
     1: "needoh+nice+cube",     # Nice Cube
@@ -132,8 +124,7 @@ SEARCH_TERMS = {
 STORE_URL_TEMPLATES = {
     0: "https://www.amazon.ae/s?k={term}",
     1: "https://www.noon.com/uae-en/search/?q={term}",
-    2: "https://www.desertcart.ae/search/{term}",
-    3: "https://www.trendyol.com/sr?q={term}",
+    2: "https://www.ubuy.ae/en/search?q={term}",
 }
 
 def _generate_listings():

@@ -11,8 +11,7 @@ from data.database import (
 )
 from scrapers.amazon_ae import AmazonAEScraper
 from scrapers.noon_uae import NoonScraper
-from scrapers.desertcart_ae import DesertcartScraper
-from scrapers.trendyol import TrendyolScraper
+from scrapers.ubuy_ae import UbuyScraper
 from engines.normalizer import normalize_result
 from engines.alert_engine import AlertEngine
 from engines.offline_engine import OfflineEngine
@@ -24,8 +23,7 @@ class StockChecker:
         self.scrapers = {
             'Amazon.ae': AmazonAEScraper(),
             'Noon': NoonScraper(),
-            'Desertcart': DesertcartScraper(),
-            'Trendyol': TrendyolScraper(),
+            'Ubuy': UbuyScraper(),
         }
         self.alert_engine = AlertEngine(notifier=notifier)
         self.offline_engine = OfflineEngine(alert_engine=self.alert_engine)

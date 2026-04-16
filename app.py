@@ -679,24 +679,14 @@ DASHBOARD_HTML = r"""
             background: linear-gradient(135deg, rgba(220, 20, 60, 0.15) 0%, rgba(255, 105, 180, 0.1) 100%);
         }
 
-        .store-link.desertcart {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%);
-            border-color: rgba(76, 175, 80, 0.2);
-            color: #2E7D32;
+        .store-link.ubuy {
+            background: linear-gradient(135deg, rgba(233, 30, 99, 0.1) 0%, rgba(244, 143, 177, 0.05) 100%);
+            border-color: rgba(233, 30, 99, 0.2);
+            color: #880E4F;
         }
 
-        .store-link.desertcart:hover {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.1) 100%);
-        }
-
-        .store-link.trendyol {
-            background: linear-gradient(135deg, rgba(63, 81, 181, 0.1) 0%, rgba(66, 165, 245, 0.05) 100%);
-            border-color: rgba(63, 81, 181, 0.2);
-            color: #1A237E;
-        }
-
-        .store-link.trendyol:hover {
-            background: linear-gradient(135deg, rgba(63, 81, 181, 0.15) 0%, rgba(66, 165, 245, 0.1) 100%);
+        .store-link.ubuy:hover {
+            background: linear-gradient(135deg, rgba(233, 30, 99, 0.15) 0%, rgba(244, 143, 177, 0.1) 100%);
         }
 
         .store-link.disabled {
@@ -1063,8 +1053,7 @@ DASHBOARD_HTML = r"""
                 <select class="form-input" id="sightStore">
                     <option value="Amazon.ae">Amazon.ae</option>
                     <option value="Noon">Noon</option>
-                    <option value="Desertcart">Desertcart</option>
-                    <option value="Trendyol">Trendyol</option>
+                    <option value="Ubuy">Ubuy UAE</option>
                     <option value="Other">Other Store</option>
                 </select>
             </div>
@@ -1454,18 +1443,18 @@ if __name__ == '__main__':
         # Always ensure seed data exists
         seed_all()
 
-    # Database migration: ensure we have the correct 26 products × 4 stores = 104 listings
+    # Database migration: ensure we have the correct 26 products × 3 stores = 78 listings
     try:
         with get_db() as conn:
             product_count = conn.execute("SELECT COUNT(*) as cnt FROM products").fetchone()['cnt']
             listing_count = conn.execute("SELECT COUNT(*) as cnt FROM listings").fetchone()['cnt']
             store_count = conn.execute("SELECT COUNT(*) as cnt FROM stores").fetchone()['cnt']
 
-            # If product/store/listing counts don't match expected (26 products, 4 stores, 104 listings),
+            # If product/store/listing counts don't match expected (26 products, 3 stores, 78 listings),
             # wipe and re-seed to ensure clean state
-            if product_count != 26 or store_count != 4 or listing_count != 104:
+            if product_count != 26 or store_count != 3 or listing_count != 78:
                 print(f"  ⚠ DB has {product_count} products, {store_count} stores, {listing_count} listings")
-                print(f"    Expected: 26 products, 4 stores, 104 listings — wiping and re-seeding...")
+                print(f"    Expected: 26 products, 3 stores, 78 listings — wiping and re-seeding...")
                 conn.execute("DELETE FROM check_log")
                 conn.execute("DELETE FROM alerts")
                 conn.execute("DELETE FROM sightings")
@@ -1476,7 +1465,7 @@ if __name__ == '__main__':
                 print("  ✓ Cleared old data")
                 # Re-seed will happen below
                 seed_all()
-                print(f"  ✓ Re-seeded with 26 products × 4 stores = 104 listings")
+                print(f"  ✓ Re-seeded with 26 products × 3 stores = 78 listings")
             else:
                 print(f"  ✓ DB OK: {product_count} products, {store_count} stores, {listing_count} listings")
 
