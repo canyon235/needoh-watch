@@ -26,6 +26,24 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dotenv import load_dotenv
 load_dotenv()
 
+# Auto-install Playwright browser if not present (needed for Noon, Desertcart, Trendyol)
+def _ensure_playwright():
+    try:
+        import subprocess
+        # Check if chromium is already installed
+        result = subprocess.run(
+            ['python', '-m', 'playwright', 'install', 'chromium'],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode == 0:
+            print("  ✓ Playwright Chromium ready")
+        else:
+            print(f"  ⚠ Playwright install issue: {result.stderr[:200]}")
+    except Exception as e:
+        print(f"  ⚠ Could not setup Playwright: {e}")
+
+_ensure_playwright()
+
 from flask import Flask, jsonify, request, render_template_string
 
 from data.database import (
