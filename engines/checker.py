@@ -17,13 +17,6 @@ from engines.normalizer import normalize_result
 from engines.alert_engine import AlertEngine
 from engines.offline_engine import OfflineEngine
 
-# Playwright fallback for JS-heavy sites
-try:
-    from scrapers.playwright_scraper import PlaywrightScraper, HAS_PLAYWRIGHT
-except ImportError:
-    HAS_PLAYWRIGHT = False
-
-
 class StockChecker:
     """Main stock checking orchestrator."""
 
@@ -34,9 +27,6 @@ class StockChecker:
             'Desertcart': DesertcartScraper(),
             'Trendyol': TrendyolScraper(),
         }
-        # Playwright fallback for JS-heavy sites (Desertcart=Next.js, Trendyol=Cloudflare)
-        self.playwright_scraper = PlaywrightScraper() if HAS_PLAYWRIGHT else None
-        self.playwright_stores = {'Noon', 'Desertcart', 'Trendyol'}
         self.alert_engine = AlertEngine(notifier=notifier)
         self.offline_engine = OfflineEngine(alert_engine=self.alert_engine)
         self.stats = {
@@ -48,7 +38,7 @@ class StockChecker:
 
     def run_check_cycle(self):
         """Run one complete check cycle for all due listings.
-        Amazon checked first (fast HTTP), then all other stores with Playwright fallback.
+        All stores use HTTP scraping with cloudscraper for anti-bot bypass.
         """
         listings = get_listings_due_for_check()
 
@@ -56,32 +46,19 @@ class StockChecker:
             return self.stats
 
         timestamp = datetime.utcnow().strftime('%H:%M:%S')
+        print(f"\n[{timestamp}] Checking {len(listings)} listings...", flush=True)
 
-        # Amazon.ae is the only store that works reliably via plain HTTP
-        # Noon, Desertcart, Trendyol all need Playwright fallback
-        amazon = [l for l in listings if l['store_name'] == 'Amazon.ae']
-        others = [l for l in listings if l['store_name'] != 'Amazon.ae']
-
-        print(f"\n[{timestamp}] Checking {len(listings)} listings "
-              f"({len(amazon)} Amazon + {len(others)} other stores)...", flush=True)
-
-        # Check Amazon first (fast HTTP scraping, ~1-3s each)
-        for listing in amazon:
-            self._check_one(listing, use_playwright=False)
-            time.sleep(0.5)
-
-        # Then check Noon, Desertcart, Trendyol — all use Playwright fallback
-        for listing in others:
-            self._check_one(listing, use_playwright=True)
-            time.sleep(0.5)
+        for listing in listings:
+            self._check_one(listing)
+            time.sleep(1)  # 1 second between requests — polite and reliable
 
         # Decay old sightings
         self.offline_engine.decay_old_sightings()
 
         return self.stats
 
-    def _check_one(self, listing, use_playwright=True):
-        """Check a single listing."""
+    def _check_one(self, listing):
+        """Check a single listing using HTTP scraping."""
         store_name = listing['store_name']
         product_name = listing['canonical_name']
         if listing['variant']:
@@ -95,19 +72,7 @@ class StockChecker:
         start_time = time.time()
 
         try:
-            # Scrape (requests first, Playwright fallback for JS-heavy sites)
             result = scraper.check_stock(listing['url'], product_name)
-
-            # If result is UNKNOWN and Playwright is available + enabled, retry with browser
-            if (result.status == 'UNKNOWN'
-                    and use_playwright
-                    and self.playwright_scraper
-                    and store_name in self.playwright_stores):
-                print(f"    ↻ Retrying {store_name} with Playwright...", flush=True)
-                pw_result = self.playwright_scraper.check_stock(listing['url'], product_name)
-                if pw_result.status != 'UNKNOWN':
-                    result = pw_result
-
             duration_ms = int((time.time() - start_time) * 1000)
 
             # Normalize

@@ -63,10 +63,15 @@ class NoonScraper(BaseScraper):
             if result and result.status != 'UNKNOWN':
                 return result
 
-            # Both APIs failed — return UNKNOWN so Playwright can try
+            # Try HTML scraping as last resort
+            result = self._html_search(url, product_name)
+            if result and result.status != 'UNKNOWN':
+                return result
+
+            # All methods failed
             return ScrapingResult(
                 status='UNKNOWN',
-                error='Noon APIs timed out — Playwright will retry',
+                error='Noon not reachable from server',
                 url=url
             )
 
@@ -100,12 +105,11 @@ class NoonScraper(BaseScraper):
             # Build API URL — use the raw search term (with + for spaces)
             api_url = f"{self.api_base}search/?q={search_term}&locale=en-ae"
 
-            # Quick try with cloudscraper — Noon blocks datacenter IPs
-            # so this usually fails. Short timeout so Playwright handles it.
+            # Try with cloudscraper — give it a real chance to respond
             response = self._cs.get(
                 api_url,
                 headers=self.MOBILE_HEADERS,
-                timeout=3
+                timeout=20
             )
 
             if response.status_code != 200:
@@ -208,7 +212,7 @@ class NoonScraper(BaseScraper):
             response = self._cs.get(
                 api_url,
                 headers=self.WEB_API_HEADERS,
-                timeout=3
+                timeout=20
             )
 
             if response.status_code != 200:

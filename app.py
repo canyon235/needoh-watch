@@ -26,24 +26,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dotenv import load_dotenv
 load_dotenv()
 
-# Auto-install Playwright browser if not present (needed for Noon, Desertcart, Trendyol)
-def _ensure_playwright():
-    try:
-        import subprocess
-        # Check if chromium is already installed
-        result = subprocess.run(
-            ['python', '-m', 'playwright', 'install', 'chromium'],
-            capture_output=True, text=True, timeout=120
-        )
-        if result.returncode == 0:
-            print("  ✓ Playwright Chromium ready")
-        else:
-            print(f"  ⚠ Playwright install issue: {result.stderr[:200]}")
-    except Exception as e:
-        print(f"  ⚠ Could not setup Playwright: {e}")
-
-_ensure_playwright()
-
 from flask import Flask, jsonify, request, render_template_string
 
 from data.database import (
@@ -256,27 +238,13 @@ def api_alerts():
 def api_diagnostics():
     """Show system diagnostics — useful for debugging."""
     import shutil
-    try:
-        from scrapers.playwright_scraper import HAS_PLAYWRIGHT
-    except ImportError:
-        HAS_PLAYWRIGHT = False
 
     diag = {
-        'playwright_available': HAS_PLAYWRIGHT,
         'python_version': __import__('sys').version,
         'background_running': bg_running,
-        'check_interval': 600,
+        'check_interval': 900,
         'timestamp': datetime.utcnow().isoformat(),
     }
-
-    # Check if chromium binary exists
-    import subprocess
-    try:
-        result = subprocess.run(['python', '-m', 'playwright', 'install', '--dry-run'],
-                              capture_output=True, text=True, timeout=5)
-        diag['playwright_install_info'] = result.stdout[:500] if result.stdout else result.stderr[:500]
-    except Exception as e:
-        diag['playwright_install_info'] = str(e)[:200]
 
     # Memory info
     try:
@@ -331,7 +299,7 @@ def api_email_subscribe():
 
 # ─── Background checker ───
 
-def background_checker(interval=120):
+def background_checker(interval=900):
     """Run stock checks in background."""
     global bg_running
     bg_running = True
@@ -355,7 +323,7 @@ def start_background():
     global bg_thread, bg_running
     if bg_running:
         return jsonify({'status': 'already_running'})
-    interval = request.json.get('interval', 600) if request.json else 600
+    interval = request.json.get('interval', 900) if request.json else 900
     bg_thread = threading.Thread(target=background_checker, args=(interval,), daemon=True)
     bg_thread.start()
     return jsonify({'status': 'started', 'interval': interval})
@@ -1523,7 +1491,7 @@ if __name__ == '__main__':
         print(f"  ⚠ Database migration error: {e}")
 
     # Always start background checker — this is a monitoring tool
-    bg_thread = threading.Thread(target=background_checker, args=(600,), daemon=True)
+    bg_thread = threading.Thread(target=background_checker, args=(900,), daemon=True)
     bg_thread.start()
     print("  ✓ Background checker started (10 min cycle, 104 listings)")
 
