@@ -1191,8 +1191,10 @@ function renderProducts(products) {
                 const dotClass = sl.stock_status === 'IN_STOCK' ? 'in-stock'
                                : sl.stock_status === 'OUT_OF_STOCK' ? 'out-of-stock' : 'unknown';
                 const delivery = DELIVERY_ESTIMATES[sl.store_name] || '';
+                const deliveryShort = delivery.replace('Ships in ', '📦 ').replace('Same day pickup possible', '🏪 Same day');
                 return `<div class="store-price-row">
                     <span class="store-label"><span class="store-status-dot ${dotClass}"></span>${storeShort}</span>
+                    <span class="delivery-info">${deliveryShort}</span>
                     <span class="store-price-val">${price}</span>
                 </div>`;
             }).join('');
