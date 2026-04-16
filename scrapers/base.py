@@ -6,12 +6,14 @@ import requests
 import time
 import re
 import os
+import random
+import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 
 USER_AGENT = os.getenv("USER_AGENT",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
 HEADERS = {
     "User-Agent": USER_AGENT,
@@ -19,6 +21,11 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9,ar;q=0.8",
     "Accept-Encoding": "gzip, deflate, br",
     "Connection": "keep-alive",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    "Upgrade-Insecure-Requests": "1",
 }
 
 
@@ -75,9 +82,48 @@ class BaseScraper:
                 return response.text
             except requests.RequestException as e:
                 if attempt < 2:
-                    time.sleep(2 ** attempt)
+                    # Random delay between 2-5 seconds
+                    delay = random.uniform(2, 5)
+                    time.sleep(delay)
                     continue
                 return None
+
+    def fetch_json(self, url, timeout=10, headers=None):
+        """Fetch JSON from an API endpoint with retries."""
+        combined_headers = {**self.session.headers}
+        combined_headers.update({
+            'Accept': 'application/json',
+        })
+        if headers:
+            combined_headers.update(headers)
+
+        for attempt in range(3):
+            try:
+                response = self.session.get(url, timeout=timeout, headers=combined_headers)
+                response.raise_for_status()
+                return response.json()
+            except requests.RequestException as e:
+                if attempt < 2:
+                    # Random delay between 2-5 seconds
+                    delay = random.uniform(2, 5)
+                    time.sleep(delay)
+                    continue
+                return None
+
+    def fetch_with_cookies(self, url, base_domain, timeout=15):
+        """
+        Fetch a page after priming cookies from the base domain.
+        This helps avoid blocks by simulating a real user session.
+        """
+        try:
+            # First, visit the base domain to get cookies
+            self.session.get(base_domain, timeout=10)
+            time.sleep(random.uniform(1, 3))
+        except requests.RequestException:
+            pass  # Ignore errors on the primer request
+
+        # Now fetch the actual page
+        return self.fetch_page(url, timeout=timeout)
 
     def parse_price(self, text):
         """Extract price from messy text. Returns float or None."""

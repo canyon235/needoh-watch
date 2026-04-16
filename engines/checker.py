@@ -12,6 +12,8 @@ from data.database import (
 from scrapers.amazon_ae import AmazonAEScraper
 from scrapers.noon_uae import NoonScraper
 from scrapers.virgin_uae import VirginScraper
+from scrapers.desertcart_ae import DesertcartScraper
+from scrapers.trendyol import TrendyolScraper
 from engines.normalizer import normalize_result
 from engines.alert_engine import AlertEngine
 from engines.offline_engine import OfflineEngine
@@ -31,10 +33,12 @@ class StockChecker:
             'Amazon.ae': AmazonAEScraper(),
             'Noon': NoonScraper(),
             'Virgin Megastore UAE': VirginScraper(),
+            'Desertcart': DesertcartScraper(),
+            'Trendyol': TrendyolScraper(),
         }
         # Playwright fallback for JS-heavy sites
         self.playwright_scraper = PlaywrightScraper() if HAS_PLAYWRIGHT else None
-        self.playwright_stores = {'Noon', 'Virgin Megastore UAE'}
+        self.playwright_stores = {'Noon', 'Virgin Megastore UAE', 'Trendyol'}
         self.alert_engine = AlertEngine(notifier=notifier)
         self.offline_engine = OfflineEngine(alert_engine=self.alert_engine)
         self.stats = {
@@ -73,7 +77,7 @@ class StockChecker:
 
         scraper = self.scrapers.get(store_name)
         if not scraper:
-            print(f"  Warning: No scraper for store: {store_name}")
+            print(f"  ⚠ No scraper for store: {store_name}")
             return
 
         start_time = time.time()
@@ -86,7 +90,7 @@ class StockChecker:
             if (result.status == 'UNKNOWN' and not result.error
                     and self.playwright_scraper
                     and store_name in self.playwright_stores):
-                print(f"    Retrying {store_name} with Playwright...")
+                print(f"    ↻ Retrying {store_name} with Playwright...")
                 pw_result = self.playwright_scraper.check_stock(listing['url'], product_name)
                 if pw_result.status != 'UNKNOWN':
                     result = pw_result
@@ -120,14 +124,14 @@ class StockChecker:
 
             # Status indicator
             status_icons = {
-                'IN_STOCK': 'GREEN',
-                'LOW_STOCK': 'YELLOW',
-                'OUT_OF_STOCK': 'RED',
-                'UNKNOWN': 'WHITE',
+                'IN_STOCK': '🟢',
+                'LOW_STOCK': '🟡',
+                'OUT_OF_STOCK': '🔴',
+                'UNKNOWN': '⚪',
             }
-            icon = status_icons.get(final_status, 'WHITE')
+            icon = status_icons.get(final_status, '⚪')
             price_text = f" AED {result.price:.0f}" if result.price else ""
-            changed_tag = " CHANGED!" if change['changed'] else ""
+            changed_tag = " ← CHANGED!" if change['changed'] else ""
 
             print(f"  {icon} {product_name} @ {store_name}: "
                   f"{final_status}{price_text} ({duration_ms}ms){changed_tag}")
@@ -157,7 +161,7 @@ class StockChecker:
         except Exception as e:
             self.stats['errors'] += 1
             duration_ms = int((time.time() - start_time) * 1000)
-            print(f"  ERROR: Error checking {product_name} @ {store_name}: {e}")
+            print(f"  ✗ Error checking {product_name} @ {store_name}: {e}")
 
             update_listing_status(
                 listing_id=listing['id'],

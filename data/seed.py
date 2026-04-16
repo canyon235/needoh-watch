@@ -51,6 +51,22 @@ STORES = [
         "supports_store_check": 1,
         "check_interval_minutes": 15
     },
+    {
+        "name": "Desertcart",
+        "type": "online",
+        "city": "UAE",
+        "base_url": "https://www.desertcart.ae",
+        "supports_store_check": 0,
+        "check_interval_minutes": 10
+    },
+    {
+        "name": "Trendyol",
+        "type": "online",
+        "city": "UAE",
+        "base_url": "https://www.trendyol.com",
+        "supports_store_check": 0,
+        "check_interval_minutes": 15
+    },
 ]
 
 # Product URLs per store (real search/category pages)
@@ -91,6 +107,25 @@ LISTINGS = [
     {"product_idx": 6, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+fuzz+ball"},
     {"product_idx": 7, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh+ramen"},
     {"product_idx": 13, "store_idx": 2, "url": "https://www.virginmegastore.ae/en/search?q=needoh"},
+
+    # Desertcart listings
+    {"product_idx": 0, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+nice+cube"},
+    {"product_idx": 2, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+snowball+crunch"},
+    {"product_idx": 3, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+dohnuts"},
+    {"product_idx": 5, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+gummy+bear"},
+    {"product_idx": 6, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+fuzz+ball"},
+    {"product_idx": 7, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+ramen"},
+    {"product_idx": 13, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh"},
+    {"product_idx": 4, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=needoh+teenie"},
+    {"product_idx": 14, "store_idx": 3, "url": "https://www.desertcart.ae/search?q=super+needoh"},
+
+    # Trendyol listings
+    {"product_idx": 0, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+nice+cube"},
+    {"product_idx": 5, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+gummy+bear"},
+    {"product_idx": 6, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+fuzz+ball"},
+    {"product_idx": 13, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh"},
+    {"product_idx": 3, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=needoh+dohnuts"},
+    {"product_idx": 14, "store_idx": 4, "url": "https://www.trendyol.com/sr?q=super+needoh"},
 ]
 
 

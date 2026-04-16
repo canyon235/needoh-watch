@@ -2,26 +2,65 @@
 Virgin Megastore UAE scraper.
 Virgin exposes in-store availability checking on product pages,
 making it a hybrid online/offline signal source.
+
+NOTE: Virgin uses Akamai WAF that blocks cloud server IPs.
+The scraper tries multiple approaches:
+1. cloudscraper (Cloudflare/Akamai bypass)
+2. Direct requests with enhanced headers
+3. Playwright browser automation (via checker fallback)
+If all fail, it returns UNKNOWN with a link to check manually.
+The main value of Virgin in this system is the offline sighting reports.
 """
 
 import re
 import json
 import time
+import random
 from bs4 import BeautifulSoup
 from scrapers.base import BaseScraper, ScrapingResult
+
+# Try to import cloudscraper for WAF bypass
+try:
+    import cloudscraper
+    HAS_CLOUDSCRAPER = True
+except ImportError:
+    HAS_CLOUDSCRAPER = False
 
 
 class VirginScraper(BaseScraper):
     STORE_NAME = "Virgin Megastore UAE"
 
+    USER_AGENTS = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+    ]
+
+    def __init__(self):
+        super().__init__()
+        self.base_url = "https://www.virginmegastore.ae"
+        # Create cloudscraper session if available
+        if HAS_CLOUDSCRAPER:
+            self.cloud_session = cloudscraper.create_scraper(
+                browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+            )
+        else:
+            self.cloud_session = None
+
     def check_stock(self, url, product_name=None):
         """Check stock on Virgin Megastore UAE."""
-        start = time.time()
-        html = self.fetch_page(url)
+        html = self._fetch_virgin_page(url)
 
         if not html:
+            # All methods failed — return UNKNOWN with helpful info
+            # Virgin is still valuable for offline sighting reports
             return ScrapingResult(
-                status='UNKNOWN', error='Failed to fetch Virgin page', url=url)
+                status='UNKNOWN',
+                error='Virgin website requires manual check (WAF protection)',
+                raw_text='Virgin Megastore blocks automated checks. '
+                         'Use "I Spotted One" to report sightings from physical stores.',
+                url=url
+            )
 
         soup = BeautifulSoup(html, 'lxml')
 
@@ -29,6 +68,44 @@ class VirginScraper(BaseScraper):
             return self._parse_search(soup, url, product_name, html)
         else:
             return self._parse_product(soup, url, html)
+
+    def _fetch_virgin_page(self, url):
+        """Try multiple methods to fetch a Virgin page."""
+        # Method 1: cloudscraper (handles many WAF challenges)
+        if self.cloud_session:
+            try:
+                response = self.cloud_session.get(url, timeout=15)
+                if response.status_code == 200 and len(response.text) > 1000:
+                    return response.text
+            except Exception:
+                pass
+
+        # Method 2: Direct request with enhanced headers and different user agents
+        for attempt, ua in enumerate(self.USER_AGENTS):
+            try:
+                headers = {
+                    'User-Agent': ua,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Referer': 'https://www.virginmegastore.ae/',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Connection': 'keep-alive',
+                }
+                response = self.session.get(url, headers=headers, timeout=12)
+                if response.status_code == 200 and len(response.text) > 1000:
+                    return response.text
+            except Exception:
+                pass
+
+            if attempt < len(self.USER_AGENTS) - 1:
+                time.sleep(random.uniform(2, 4))
+
+        return None
 
     def _parse_search(self, soup, url, product_name, html):
         """Parse Virgin search results."""
@@ -50,6 +127,7 @@ class VirginScraper(BaseScraper):
                     url=url
                 )
 
+            # Try to find embedded JSON data
             scripts = soup.find_all('script')
             for script in scripts:
                 if script.string and ('product' in (script.string or '').lower()):
@@ -66,6 +144,7 @@ class VirginScraper(BaseScraper):
                 url=url
             )
 
+        # Parse product cards
         for card in product_cards[:5]:
             card_text = card.get_text(' ', strip=True)
             card_lower = card_text.lower()
@@ -197,7 +276,6 @@ class VirginScraper(BaseScraper):
         )
 
         for section in store_sections:
-            section_text = section.get_text(' ', strip=True)
             store_items = section.select('li') or section.select('.store-item')
             for item in store_items:
                 item_text = item.get_text(' ', strip=True)

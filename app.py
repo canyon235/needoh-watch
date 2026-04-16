@@ -230,6 +230,39 @@ def api_alerts():
     return jsonify([dict(a) for a in alerts])
 
 
+@app.route('/api/email-subscribe', methods=['POST'])
+def api_email_subscribe():
+    """Subscribe email to product alerts."""
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    products = data.get('products', [])
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    user_id = f"email_{email}"
+
+    # Add subscription for each product
+    for product_query in products:
+        found_products = find_product(product_query)
+        if found_products:
+            product = found_products[0]
+            add_subscription(
+                user_id=user_id,
+                product_id=product['id'],
+                max_price=None,
+                notify_email=email,
+                user_name=email,
+            )
+
+    return jsonify({
+        'success': True,
+        'email': email,
+        'subscribed_count': len(products),
+        'message': f'Successfully subscribed {email} to notifications!'
+    })
+
+
 # ─── Background checker ───
 
 def background_checker(interval=120):
@@ -277,368 +310,662 @@ DASHBOARD_HTML = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeeDoh Watch UAE</title>
+    <title>NeeDoh Watch UAE 🎯</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg: #0f1117;
-            --surface: #1a1d27;
-            --surface2: #242736;
-            --border: #2e3144;
-            --text: #e4e4e7;
-            --text-dim: #8b8d9e;
-            --accent: #7c5cfc;
-            --accent-light: #9b82fc;
-            --green: #22c55e;
-            --yellow: #eab308;
-            --red: #ef4444;
-            --blue: #3b82f6;
+            --pink: #FF6B9D;
+            --purple: #C084FC;
+            --turquoise: #22D3EE;
+            --coral: #FF8A65;
+            --lime: #84CC16;
+            --white: #FFFFFF;
+            --light-bg: #F8F9FF;
+            --light-gray: #E8EAEF;
+            --dark-text: #2D3748;
+            --light-text: #718096;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #FFF5F7 0%, #F3F0FF 50%, #ECFDF5 100%);
+            color: var(--dark-text);
             line-height: 1.6;
             min-height: 100vh;
         }
 
         /* Header */
         .header {
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .header-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--surface2);
-            color: var(--text);
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.15s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn:hover { background: var(--border); }
-        .btn-primary {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: white;
-        }
-        .btn-primary:hover { background: var(--accent-light); }
-        .btn-sm { padding: 4px 10px; font-size: 12px; }
-        .btn-green { background: #166534; border-color: #166534; }
-        .btn-red { background: #991b1b; border-color: #991b1b; }
-
-        /* Layout */
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-
-        /* Stats row */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
+            background: linear-gradient(135deg, #FF6B9D 0%, #C084FC 50%, #22D3EE 100%);
+            padding: 24px;
             text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 157, 0.2);
         }
-        .stat-value { font-size: 28px; font-weight: 700; }
-        .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0;
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--white);
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .tab {
-            padding: 10px 18px;
-            cursor: pointer;
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
             font-size: 14px;
+            margin-top: 6px;
             font-weight: 500;
-            color: var(--text-dim);
-            border-bottom: 2px solid transparent;
-            transition: all 0.15s;
-        }
-        .tab:hover { color: var(--text); }
-        .tab.active {
-            color: var(--accent-light);
-            border-bottom-color: var(--accent);
         }
 
-        /* Cards */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Email Alert Section */
+        .email-alert-section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: 2px solid transparent;
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.05) 0%, rgba(192, 132, 252, 0.05) 100%);
+        }
+
+        .email-alert-section h2 {
+            font-size: 20px;
+            font-weight: 700;
             margin-bottom: 16px;
-        }
-        .card-header {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-weight: 600;
+            color: var(--dark-text);
         }
 
-        /* Product table */
+        .email-input-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .email-input-group input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border: 2px solid var(--light-gray);
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .email-input-group input:focus {
+            outline: none;
+            border-color: var(--pink);
+            box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+        }
+
+        .email-input-group button {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--pink) 0%, var(--coral) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+        }
+
+        .email-input-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 107, 157, 0.4);
+        }
+
+        .email-input-group button:active {
+            transform: translateY(0);
+        }
+
+        .email-confirmation {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(132, 204, 22, 0.1) 0%, rgba(34, 211, 238, 0.1) 100%);
+            color: var(--dark-text);
+            font-size: 13px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .email-confirmation.show {
+            display: block;
+        }
+
+        /* Product Grid */
         .product-grid {
             display: grid;
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
         }
-        .product-row {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            display: grid;
-            grid-template-columns: 1fr auto auto auto;
-            align-items: center;
-            gap: 16px;
-            transition: all 0.15s;
-            cursor: pointer;
-        }
-        .product-row:hover { border-color: var(--accent); background: var(--surface2); }
-        .product-name { font-weight: 600; font-size: 15px; }
-        .product-variant { color: var(--text-dim); font-size: 13px; }
 
-        /* Status badges */
-        .badge {
-            padding: 4px 10px;
+        .product-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .product-card.pink {
+            border-color: rgba(255, 107, 157, 0.2);
+        }
+
+        .product-card.purple {
+            border-color: rgba(192, 132, 252, 0.2);
+        }
+
+        .product-card.turquoise {
+            border-color: rgba(34, 211, 238, 0.2);
+        }
+
+        .product-card.coral {
+            border-color: rgba(255, 138, 101, 0.2);
+        }
+
+        .product-card.lime {
+            border-color: rgba(132, 204, 22, 0.2);
+        }
+
+        .product-emoji {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .product-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 12px;
+        }
+
+        .product-status {
+            display: inline-block;
+            padding: 8px 14px;
             border-radius: 20px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
+            margin-bottom: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .badge-in-stock { background: rgba(34,197,94,0.15); color: var(--green); }
-        .badge-low-stock { background: rgba(234,179,8,0.15); color: var(--yellow); }
-        .badge-out-of-stock { background: rgba(239,68,68,0.15); color: var(--red); }
-        .badge-unknown { background: rgba(139,141,158,0.15); color: var(--text-dim); }
 
-        .price { font-weight: 600; color: var(--green); font-size: 15px; }
-        .price-none { color: var(--text-dim); }
+        .status-available {
+            background: linear-gradient(135deg, rgba(132, 204, 22, 0.2) 0%, rgba(34, 211, 238, 0.1) 100%);
+            color: #2D5016;
+        }
+
+        .status-out-of-stock {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.2) 0%, rgba(255, 138, 101, 0.1) 100%);
+            color: #7F1D1D;
+        }
+
+        .status-checking {
+            background: linear-gradient(135deg, rgba(192, 132, 252, 0.2) 0%, rgba(34, 211, 238, 0.1) 100%);
+            color: #4C1D95;
+        }
+
+        .product-price {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--pink);
+            margin-bottom: 12px;
+        }
+
+        .product-stores {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .store-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, rgba(192, 132, 252, 0.1) 0%, rgba(34, 211, 238, 0.1) 100%);
+            color: var(--dark-text);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid rgba(192, 132, 252, 0.2);
+        }
+
+        .store-link:hover {
+            background: linear-gradient(135deg, rgba(192, 132, 252, 0.2) 0%, rgba(34, 211, 238, 0.15) 100%);
+            transform: translateX(2px);
+        }
+
+        .store-link.amazon {
+            background: linear-gradient(135deg, rgba(255, 159, 0, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+            border-color: rgba(255, 159, 0, 0.2);
+            color: #E65100;
+        }
+
+        .store-link.amazon:hover {
+            background: linear-gradient(135deg, rgba(255, 159, 0, 0.15) 0%, rgba(255, 193, 7, 0.1) 100%);
+        }
+
+        .store-link.noon {
+            background: linear-gradient(135deg, rgba(255, 80, 80, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%);
+            border-color: rgba(255, 80, 80, 0.2);
+            color: #C62828;
+        }
+
+        .store-link.noon:hover {
+            background: linear-gradient(135deg, rgba(255, 80, 80, 0.15) 0%, rgba(255, 152, 0, 0.1) 100%);
+        }
+
+        .store-link.virgin {
+            background: linear-gradient(135deg, rgba(220, 20, 60, 0.1) 0%, rgba(255, 105, 180, 0.05) 100%);
+            border-color: rgba(220, 20, 60, 0.2);
+            color: #B71C1C;
+        }
+
+        .store-link.virgin:hover {
+            background: linear-gradient(135deg, rgba(220, 20, 60, 0.15) 0%, rgba(255, 105, 180, 0.1) 100%);
+        }
+
+        .store-link.desertcart {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.05) 100%);
+            border-color: rgba(76, 175, 80, 0.2);
+            color: #2E7D32;
+        }
+
+        .store-link.desertcart:hover {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.1) 100%);
+        }
+
+        .store-link.trendyol {
+            background: linear-gradient(135deg, rgba(63, 81, 181, 0.1) 0%, rgba(66, 165, 245, 0.05) 100%);
+            border-color: rgba(63, 81, 181, 0.2);
+            color: #1A237E;
+        }
+
+        .store-link.trendyol:hover {
+            background: linear-gradient(135deg, rgba(63, 81, 181, 0.15) 0%, rgba(66, 165, 245, 0.1) 100%);
+        }
+
+        .store-link.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .store-link.disabled:hover {
+            transform: none;
+        }
+
+        /* Action Buttons */
+        .product-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--light-gray);
+            color: var(--dark-text);
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-small:hover {
+            background: #D2D6DC;
+            transform: translateY(-1px);
+        }
+
+        .btn-small.report {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.15) 0%, rgba(192, 132, 252, 0.1) 100%);
+            color: var(--pink);
+        }
+
+        .btn-small.report:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.25) 0%, rgba(192, 132, 252, 0.15) 100%);
+        }
 
         /* Modal */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 100;
-            display: flex; align-items: center; justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
         .modal {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            width: 100%; max-width: 580px;
-            max-height: 80vh; overflow-y: auto;
-            padding: 24px;
+            background: var(--white);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            position: relative;
         }
-        .modal h2 { margin-bottom: 16px; }
+
         .modal-close {
-            float: right; cursor: pointer; font-size: 24px;
-            color: var(--text-dim); border: none; background: none;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            background: var(--light-gray);
+            border: none;
+            border-radius: 8px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .modal-close:hover { color: var(--text); }
+
+        .modal-close:hover {
+            background: #D2D6DC;
+            transform: rotate(90deg);
+        }
+
+        .modal h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark-text);
+        }
+
+        .modal h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 20px 0 12px 0;
+            color: var(--dark-text);
+        }
 
         /* Forms */
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px; }
-        .form-input {
-            width: 100%; padding: 10px 12px;
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 8px; color: var(--text); font-size: 14px;
+        .form-group {
+            margin-bottom: 18px;
         }
-        .form-input:focus { outline: none; border-color: var(--accent); }
-        select.form-input { cursor: pointer; }
 
-        /* Detail panel */
-        .detail-stores { display: grid; gap: 10px; margin: 12px 0; }
-        .store-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px; background: var(--surface2); border-radius: 8px;
-        }
-        .store-name { font-weight: 500; }
-
-        /* Sightings */
-        .sighting-item {
-            padding: 12px; background: var(--surface2); border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .sighting-location { font-weight: 500; }
-        .sighting-meta { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-
-        /* Alerts */
-        .alert-item {
-            padding: 12px 16px; border-bottom: 1px solid var(--border);
+        .form-group label {
+            display: block;
             font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--dark-text);
         }
-        .alert-item:last-child { border-bottom: none; }
-        .alert-time { font-size: 12px; color: var(--text-dim); }
-        .alert-type {
-            font-size: 11px; padding: 2px 8px; border-radius: 12px;
-            background: var(--surface2); margin-left: 8px;
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--light-gray);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--pink) 0%, var(--coral) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 12px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 107, 157, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Store Details */
+        .store-detail-row {
+            background: var(--light-bg);
+            padding: 14px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .store-detail-info {
+            flex: 1;
+        }
+
+        .store-detail-name {
+            font-weight: 700;
+            color: var(--dark-text);
+            margin-bottom: 4px;
+        }
+
+        .store-detail-meta {
+            font-size: 12px;
+            color: var(--light-text);
+        }
+
+        .store-detail-price {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--pink);
+            margin: 0 12px;
+        }
+
+        .store-detail-button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, var(--purple) 0%, var(--turquoise) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .store-detail-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(192, 132, 252, 0.3);
+        }
+
+        .store-detail-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* Toast */
         .toast {
-            position: fixed; bottom: 20px; right: 20px; z-index: 200;
-            padding: 12px 20px; border-radius: 10px;
-            background: var(--accent); color: white;
-            font-weight: 500; font-size: 14px;
-            transform: translateY(100px); opacity: 0;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 200;
+            padding: 14px 20px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--pink) 0%, var(--coral) 100%);
+            color: var(--white);
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 6px 16px rgba(255, 107, 157, 0.4);
+            transform: translateY(120px);
+            opacity: 0;
             transition: all 0.3s;
         }
-        .toast.show { transform: translateY(0); opacity: 1; }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
 
         /* Loading */
         .spinner {
-            display: inline-block; width: 16px; height: 16px;
-            border: 2px solid var(--border); border-top-color: var(--accent);
-            border-radius: 50%; animation: spin 0.8s linear infinite;
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(192, 132, 252, 0.3);
+            border-top-color: var(--purple);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
         /* Responsive */
         @media (max-width: 768px) {
-            .product-row { grid-template-columns: 1fr; gap: 8px; }
-            .header { padding: 14px; }
-            .header h1 { font-size: 18px; }
-            .container { padding: 12px; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 16px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header {
+                padding: 18px;
+            }
+
+            .container {
+                padding: 16px;
+            }
+
+            .email-input-group {
+                flex-direction: column;
+            }
+
+            .email-input-group input,
+            .email-input-group button {
+                width: 100%;
+            }
+
+            .modal {
+                padding: 20px;
+            }
+
+            .store-detail-row {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .store-detail-price {
+                margin: 8px 0;
+            }
+
+            .store-detail-button {
+                width: 100%;
+            }
         }
 
-        .hidden { display: none !important; }
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🎯 NeeDoh Watch UAE</h1>
-        <div class="header-actions">
-            <button class="btn" onclick="refreshDashboard()">↻ Refresh</button>
-            <button class="btn btn-primary" onclick="runCheck()">⚡ Check Now</button>
-            <button class="btn" id="bgBtn" onclick="toggleBackground()">▶ Auto-Check</button>
-            <button class="btn" onclick="showTrackModal()">+ Track</button>
-            <button class="btn" onclick="showSightingModal()">👁 Report Sighting</button>
-        </div>
+        <p>Find your favorite fidget toys across all stores!</p>
     </div>
 
     <div class="container">
-        <!-- Stats -->
-        <div class="stats-row" id="statsRow">
-            <div class="stat-card"><div class="stat-value" id="statTotal">—</div><div class="stat-label">Products</div></div>
-            <div class="stat-card"><div class="stat-value" id="statInStock" style="color:var(--green)">—</div><div class="stat-label">In Stock</div></div>
-            <div class="stat-card"><div class="stat-value" id="statOutStock" style="color:var(--red)">—</div><div class="stat-label">Out of Stock</div></div>
-            <div class="stat-card"><div class="stat-value" id="statSightings" style="color:var(--yellow)">—</div><div class="stat-label">Sightings (24h)</div></div>
-            <div class="stat-card"><div class="stat-value" id="statLowest" style="color:var(--green)">—</div><div class="stat-label">Lowest Price</div></div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('products', this)">Products</div>
-            <div class="tab" onclick="switchTab('alerts', this)">Alerts</div>
-            <div class="tab" onclick="switchTab('wishlist', this)">Wishlist</div>
-        </div>
-
-        <!-- Products Tab -->
-        <div id="tab-products">
-            <div class="product-grid" id="productGrid">
-                <div style="text-align:center; padding:40px; color:var(--text-dim)">
-                    <div class="spinner"></div> Loading products...
-                </div>
+        <!-- Email Alert Section -->
+        <div class="email-alert-section">
+            <h2>📬 Get Notified! 🎉</h2>
+            <div class="email-input-group">
+                <input
+                    type="email"
+                    id="emailInput"
+                    placeholder="Enter your email for alerts..."
+                    aria-label="Email for notifications"
+                >
+                <button onclick="subscribeEmail()">Notify Me!</button>
             </div>
+            <div class="email-confirmation" id="emailConfirmation"></div>
         </div>
 
-        <!-- Alerts Tab -->
-        <div id="tab-alerts" class="hidden">
-            <div class="card">
-                <div class="card-header">Recent Alerts <span class="badge badge-unknown" id="alertCount">0</span></div>
-                <div id="alertsList" style="max-height:500px; overflow-y:auto;">
-                    <div class="alert-item" style="color:var(--text-dim)">Loading alerts...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Wishlist Tab -->
-        <div id="tab-wishlist" class="hidden">
-            <div class="card">
-                <div class="card-header">Your Tracked Products</div>
-                <div id="wishlistContent" style="padding:16px;">
-                    <div style="color:var(--text-dim)">Loading...</div>
-                </div>
+        <!-- Product Grid -->
+        <div class="product-grid" id="productGrid">
+            <div style="text-align: center; padding: 40px; grid-column: 1/-1;">
+                <div class="spinner"></div>
+                <p style="margin-top: 16px; color: var(--light-text);">Loading amazing toys...</p>
             </div>
         </div>
     </div>
 
     <!-- Product Detail Modal -->
-    <div class="modal-overlay hidden" id="productModal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-overlay" id="productModal" onclick="if(event.target.id === 'productModal') closeProductModal()">
         <div class="modal">
-            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <button class="modal-close" onclick="closeProductModal()">&times;</button>
             <div id="modalContent">Loading...</div>
         </div>
     </div>
 
-    <!-- Track Modal -->
-    <div class="modal-overlay hidden" id="trackModal" onclick="if(event.target===this)closeTrackModal()">
-        <div class="modal">
-            <button class="modal-close" onclick="closeTrackModal()">&times;</button>
-            <h2>Track a Product</h2>
-            <div class="form-group">
-                <label>Product</label>
-                <select class="form-input" id="trackProduct"></select>
-            </div>
-            <div class="form-group">
-                <label>Max Price (AED) — optional</label>
-                <input class="form-input" id="trackPrice" type="number" placeholder="e.g. 60">
-            </div>
-            <div class="form-group">
-                <label>Your Email (for alerts)</label>
-                <input class="form-input" id="trackEmail" type="email" placeholder="you@example.com">
-            </div>
-            <button class="btn btn-primary" onclick="submitTrack()" style="width:100%; margin-top:8px">Start Tracking</button>
-        </div>
-    </div>
-
     <!-- Sighting Modal -->
-    <div class="modal-overlay hidden" id="sightingModal" onclick="if(event.target===this)closeSightingModal()">
+    <div class="modal-overlay" id="sightingModal" onclick="if(event.target.id === 'sightingModal') closeSightingModal()">
         <div class="modal">
             <button class="modal-close" onclick="closeSightingModal()">&times;</button>
-            <h2>👁 Report a Sighting</h2>
+            <h2>👀 I Spotted One!</h2>
             <div class="form-group">
-                <label>Product</label>
+                <label>Which toy?</label>
                 <select class="form-input" id="sightProduct"></select>
             </div>
             <div class="form-group">
@@ -647,12 +974,13 @@ DASHBOARD_HTML = r"""
                     <option value="Amazon.ae">Amazon.ae</option>
                     <option value="Noon">Noon</option>
                     <option value="Virgin Megastore UAE">Virgin Megastore UAE</option>
-                    <option value="Other">Other</option>
+                    <option value="Desertcart">Desertcart</option>
+                    <option value="Trendyol">Trendyol</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Mall / Location</label>
-                <input class="form-input" id="sightMall" placeholder="e.g. Dubai Mall, Mall of the Emirates">
+                <label>Where exactly? (Mall or store)</label>
+                <input class="form-input" id="sightMall" placeholder="e.g., Dubai Mall, Mall of the Emirates">
             </div>
             <div class="form-group">
                 <label>City</label>
@@ -663,7 +991,7 @@ DASHBOARD_HTML = r"""
                     <option value="Other">Other</option>
                 </select>
             </div>
-            <button class="btn btn-primary" onclick="submitSighting()" style="width:100%; margin-top:8px">Submit Sighting</button>
+            <button class="btn-primary" onclick="submitSighting()">Share the News! 📢</button>
         </div>
     </div>
 
@@ -671,18 +999,47 @@ DASHBOARD_HTML = r"""
     <div class="toast" id="toast"></div>
 
 <script>
-let allProducts = [];
-let bgRunning = false;
+// Product emoji mapping
+const PRODUCT_EMOJIS = {
+    'Nice Cube': '🧊',
+    'Swirl': '🌀',
+    'Snowball': '❄️',
+    'Dohnuts': '🍩',
+    'Gummy Bear': '🐻',
+    'Fuzz Ball': '🧸',
+    'Ramen': '🍜',
+    'Cool Cats': '🐱',
+    'Dig It Pig': '🐷',
+    'Mac N Squeeze': '🧀',
+    'Diddy Doh': '🫧',
+    'Groovy Fruit': '🍇',
+    'NeeDoh Blob': '🫠',
+    'Super Needoh': '💪',
+    'Teenie': '🎯',
+};
 
-// ─── Init ───
+// Delivery estimates per store
+const DELIVERY_ESTIMATES = {
+    'Amazon.ae': 'Ships in 1-3 days',
+    'Noon': 'Ships in 1-2 days',
+    'Virgin Megastore UAE': 'Same day pickup possible',
+    'Desertcart': 'Ships in 5-15 days',
+    'Trendyol': 'Ships in 7-20 days',
+};
+
+// Color rotation for product cards
+const CARD_COLORS = ['pink', 'purple', 'turquoise', 'coral', 'lime'];
+let colorIndex = 0;
+
+let allProducts = [];
+
+// Init on page load
 document.addEventListener('DOMContentLoaded', () => {
     refreshDashboard();
-    loadAlerts();
-    loadWishlist();
-    checkBgStatus();
+    setInterval(refreshDashboard, 60000); // Auto-refresh every 60 seconds
 });
 
-// ─── API helpers ───
+// API helper
 async function api(url, opts = {}) {
     const resp = await fetch(url, {
         headers: { 'Content-Type': 'application/json' },
@@ -691,6 +1048,7 @@ async function api(url, opts = {}) {
     return resp.json();
 }
 
+// Toast notification
 function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -698,64 +1056,80 @@ function toast(msg) {
     setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ─── Dashboard ───
+// Refresh dashboard
 async function refreshDashboard() {
     const data = await api('/api/dashboard');
     allProducts = data.products;
-    renderStats(data.products);
     renderProducts(data.products);
-    populateProductSelects(data.products);
+    populateSelects(data.products);
 }
 
-function renderStats(products) {
-    const total = products.length;
-    const inStock = products.filter(p => (p.in_stock_count || 0) > 0).length;
-    const outStock = products.filter(p => (p.in_stock_count || 0) === 0 && (p.listing_count || 0) > 0).length;
-    const sightings = products.reduce((sum, p) => sum + (p.sighting_count_24h || 0), 0);
-    const prices = products.map(p => p.lowest_price).filter(p => p && p > 0);
-    const lowest = prices.length ? `AED ${Math.min(...prices).toFixed(0)}` : '—';
-
-    document.getElementById('statTotal').textContent = total;
-    document.getElementById('statInStock').textContent = inStock;
-    document.getElementById('statOutStock').textContent = outStock;
-    document.getElementById('statSightings').textContent = sightings;
-    document.getElementById('statLowest').textContent = lowest;
+// Get emoji for product
+function getEmoji(productName) {
+    for (const [name, emoji] of Object.entries(PRODUCT_EMOJIS)) {
+        if (productName.includes(name)) {
+            return emoji;
+        }
+    }
+    return '🎯';
 }
 
+// Get card color
+function getCardColor() {
+    const color = CARD_COLORS[colorIndex % CARD_COLORS.length];
+    colorIndex++;
+    return color;
+}
+
+// Render products
 function renderProducts(products) {
     const grid = document.getElementById('productGrid');
+    colorIndex = 0;
+
     if (!products.length) {
-        grid.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-dim)">No products tracked yet.</div>';
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--light-text);">No toys to track yet. Check back soon!</div>';
         return;
     }
 
     grid.innerHTML = products.map(p => {
-        const name = p.canonical_name;
-        const variant = p.variant ? `<span class="product-variant">${p.variant}</span>` : '';
+        const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
+        const emoji = getEmoji(p.canonical_name);
+        const color = getCardColor();
         const inStock = p.in_stock_count || 0;
         const total = p.listing_count || 0;
-        const price = p.lowest_price ? `<span class="price">AED ${p.lowest_price.toFixed(0)}</span>` : '<span class="price-none">—</span>';
+        const price = p.lowest_price ? `AED ${p.lowest_price.toFixed(0)}` : 'Price TBD';
 
         let statusClass, statusText;
-        if (inStock > 0) { statusClass = 'badge-in-stock'; statusText = `${inStock}/${total} In Stock`; }
-        else if (!p.last_check) { statusClass = 'badge-unknown'; statusText = 'Not Checked'; }
-        else { statusClass = 'badge-out-of-stock'; statusText = 'Out of Stock'; }
+        if (inStock > 0) {
+            statusClass = 'status-available';
+            statusText = `✅ Available (${inStock}/${total})`;
+        } else if (!p.last_check) {
+            statusClass = 'status-checking';
+            statusText = '⏳ Checking...';
+        } else {
+            statusClass = 'status-out-of-stock';
+            statusText = '❌ Out of Stock';
+        }
 
-        const sightings = p.sighting_count_24h ? `<span style="color:var(--yellow); font-size:12px">👁 ${p.sighting_count_24h}</span>` : '';
-
-        return `<div class="product-row" onclick="showProduct(${p.id})">
-            <div><div class="product-name">${name} ${variant}</div></div>
-            <div>${sightings}</div>
-            <div><span class="badge ${statusClass}">${statusText}</span></div>
-            <div>${price}</div>
+        return `<div class="product-card ${color}" onclick="showProductDetail(${p.id})">
+            <div class="product-emoji">${emoji}</div>
+            <div class="product-name">${p.canonical_name}</div>
+            ${p.variant ? `<div style="font-size: 12px; color: var(--light-text); margin-bottom: 8px;">${p.variant}</div>` : ''}
+            <div class="product-status ${statusClass}">${statusText}</div>
+            <div class="product-price">${price}</div>
+            <div class="product-actions">
+                <button class="btn-small report" onclick="event.stopPropagation(); showSightingModal('${p.canonical_name}')">👀 Spotted</button>
+                <button class="btn-small" onclick="event.stopPropagation(); showProductDetail(${p.id})">🔍 Details</button>
+            </div>
         </div>`;
     }).join('');
 }
 
-// ─── Product Detail ───
-async function showProduct(id) {
-    document.getElementById('productModal').classList.remove('hidden');
-    document.getElementById('modalContent').innerHTML = '<div style="text-align:center; padding:20px"><div class="spinner"></div></div>';
+// Show product detail modal
+async function showProductDetail(id) {
+    const modal = document.getElementById('productModal');
+    modal.classList.add('show');
+    document.getElementById('modalContent').innerHTML = '<div style="text-align:center; padding:40px"><div class="spinner"></div></div>';
 
     const data = await api(`/api/product/${id}`);
     if (data.error) {
@@ -765,235 +1139,144 @@ async function showProduct(id) {
 
     const p = data.product;
     const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
+    const emoji = getEmoji(p.canonical_name);
 
-    let storesHtml = data.listings.map(l => {
-        const statusClass = l.stock_status === 'IN_STOCK' ? 'badge-in-stock'
-            : l.stock_status === 'OUT_OF_STOCK' ? 'badge-out-of-stock'
-            : l.stock_status === 'LOW_STOCK' ? 'badge-low-stock' : 'badge-unknown';
-        const price = l.last_price ? `AED ${l.last_price.toFixed(0)}` : '—';
-        const checked = l.last_checked_at ? new Date(l.last_checked_at + 'Z').toLocaleTimeString() : 'Never';
-        return `<div class="store-row">
-            <div>
-                <div class="store-name">${l.store_name}</div>
-                <div style="font-size:12px; color:var(--text-dim)">Checked: ${checked}</div>
-            </div>
-            <div style="text-align:right">
-                <span class="badge ${statusClass}">${l.stock_status || 'UNKNOWN'}</span>
-                <div style="font-size:14px; margin-top:4px; font-weight:600">${price}</div>
-            </div>
-        </div>`;
-    }).join('');
+    let storesHtml = '';
+    if (data.listings && data.listings.length > 0) {
+        storesHtml = data.listings.map(l => {
+            const price = l.last_price ? `AED ${l.last_price.toFixed(0)}` : '—';
+            const status = l.stock_status === 'IN_STOCK' ? '✅ In Stock'
+                         : l.stock_status === 'OUT_OF_STOCK' ? '❌ Out of Stock'
+                         : l.stock_status === 'LOW_STOCK' ? '⚠️ Low Stock' : '⏳ Unknown';
+            const delivery = DELIVERY_ESTIMATES[l.store_name] || 'Varies';
+            const storeClass = l.store_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
-    let sightingsHtml = '';
-    if (data.sightings.length > 0) {
-        sightingsHtml = '<h3 style="margin:16px 0 8px">👁 Recent Sightings</h3>' +
-            data.sightings.slice(0, 5).map(s => {
-                const loc = s.mall_name || s.store_full_name || s.store_name || 'Unknown';
-                const conf = s.confidence_score >= 80 ? 'High' : s.confidence_score >= 50 ? 'Medium' : 'Low';
-                const confColor = s.confidence_score >= 80 ? 'var(--green)' : s.confidence_score >= 50 ? 'var(--yellow)' : 'var(--red)';
-                const time = s.reported_at ? new Date(s.reported_at + 'Z').toLocaleString() : '';
-                return `<div class="sighting-item">
-                    <div class="sighting-location">📍 ${loc}</div>
-                    <div class="sighting-meta">
-                        <span style="color:${confColor}; font-weight:600">${conf} confidence</span>
-                        (${s.confidence_score}/100) · ${time}
+            return `<div class="store-detail-row">
+                <div class="store-detail-info">
+                    <div class="store-detail-name">${l.store_name}</div>
+                    <div class="store-detail-meta">${delivery}</div>
+                </div>
+                <div class="store-detail-price">${price}</div>
+                ${l.url ? `<a href="${l.url}" target="_blank" rel="noopener" class="store-detail-button">Buy Now 🛒</a>` : '<button class="store-detail-button disabled">N/A</button>'}
+            </div>`;
+        }).join('');
+    } else {
+        storesHtml = '<div style="color: var(--light-text); padding: 20px; text-align: center;">No listings found yet.</div>';
+    }
+
+    let recentNewsHtml = '';
+    if (data.sightings && data.sightings.length > 0) {
+        recentNewsHtml = '<h3>📰 Recent Sightings</h3>' +
+            data.sightings.slice(0, 3).map(s => {
+                const loc = s.mall_name || s.store_full_name || 'Unknown location';
+                const time = s.reported_at ? new Date(s.reported_at + 'Z').toLocaleDateString() : '';
+                return `<div class="store-detail-row" style="background: rgba(255, 107, 157, 0.05); flex-direction: column; text-align: left;">
+                    <div class="store-detail-info">
+                        <div class="store-detail-name">📍 ${loc}</div>
+                        <div class="store-detail-meta">${time}</div>
                     </div>
                 </div>`;
             }).join('');
     }
 
     document.getElementById('modalContent').innerHTML = `
-        <h2 style="margin-bottom:16px">${name}</h2>
-        <h3 style="margin-bottom:8px">Store Availability</h3>
-        <div class="detail-stores">${storesHtml || '<div style="color:var(--text-dim)">No listings yet</div>'}</div>
-        ${sightingsHtml}
-        <div style="margin-top:16px; display:flex; gap:8px">
-            <button class="btn btn-primary btn-sm" onclick="runProductCheck('${p.canonical_name}')">⚡ Check Now</button>
-            <button class="btn btn-sm" onclick="trackFromModal('${p.canonical_name}')">+ Track</button>
-        </div>
+        <h2>${emoji} ${name}</h2>
+        <h3>🏬 Where to Buy</h3>
+        ${storesHtml}
+        ${recentNewsHtml}
     `;
 }
 
-function closeModal() { document.getElementById('productModal').classList.add('hidden'); }
-
-async function runProductCheck(name) {
-    toast('Checking...');
-    await api('/api/check', { method: 'POST', body: JSON.stringify({ product: name }) });
-    toast('Check complete!');
-    closeModal();
-    refreshDashboard();
+function closeProductModal() {
+    document.getElementById('productModal').classList.remove('show');
 }
 
-// ─── Track ───
-function populateProductSelects(products) {
-    const opts = products.map(p => {
-        const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
-        return `<option value="${p.canonical_name}">${name}</option>`;
-    }).join('');
-    document.getElementById('trackProduct').innerHTML = opts;
-    document.getElementById('sightProduct').innerHTML = opts;
-}
-
-function showTrackModal() { document.getElementById('trackModal').classList.remove('hidden'); }
-function closeTrackModal() { document.getElementById('trackModal').classList.add('hidden'); }
-
-function trackFromModal(name) {
-    closeModal();
-    showTrackModal();
-    document.getElementById('trackProduct').value = name;
-}
-
-async function submitTrack() {
-    const product = document.getElementById('trackProduct').value;
-    const price = document.getElementById('trackPrice').value;
-    const email = document.getElementById('trackEmail').value;
-
-    const data = await api('/api/track', {
-        method: 'POST',
-        body: JSON.stringify({ product, max_price: price || null, email })
-    });
-
-    if (data.success) {
-        toast(`Now tracking ${data.product}!`);
-        closeTrackModal();
-        loadWishlist();
-    } else {
-        toast(data.error || 'Failed to track');
+// Show sighting modal
+function showSightingModal(productName = '') {
+    const modal = document.getElementById('sightingModal');
+    modal.classList.add('show');
+    if (productName) {
+        const select = document.getElementById('sightProduct');
+        const opts = select.querySelectorAll('option');
+        opts.forEach(opt => {
+            if (opt.textContent.includes(productName)) {
+                select.value = opt.value;
+            }
+        });
     }
 }
 
-// ─── Sightings ───
-function showSightingModal() { document.getElementById('sightingModal').classList.remove('hidden'); }
-function closeSightingModal() { document.getElementById('sightingModal').classList.add('hidden'); }
+function closeSightingModal() {
+    document.getElementById('sightingModal').classList.remove('show');
+}
 
+// Submit sighting
 async function submitSighting() {
     const product = document.getElementById('sightProduct').value;
     const store = document.getElementById('sightStore').value;
     const mall = document.getElementById('sightMall').value;
     const city = document.getElementById('sightCity').value;
 
+    if (!mall) {
+        toast('Please enter the location!');
+        return;
+    }
+
     const data = await api('/api/sighting', {
         method: 'POST',
         body: JSON.stringify({ product, store, mall, city })
     });
 
-    toast(data.message || (data.success ? 'Sighting recorded!' : 'Error'));
-    closeSightingModal();
-    refreshDashboard();
+    if (data.success) {
+        toast('🎉 Thanks for the sighting! You\'re awesome!');
+        closeSightingModal();
+        refreshDashboard();
+    } else {
+        toast('Oops! ' + (data.message || 'Something went wrong'));
+    }
 }
 
-// ─── Alerts ───
-async function loadAlerts() {
-    const data = await api('/api/alerts?hours=48');
-    const list = document.getElementById('alertsList');
-    document.getElementById('alertCount').textContent = data.length;
+// Email subscription
+async function subscribeEmail() {
+    const email = document.getElementById('emailInput').value.trim();
 
-    if (!data.length) {
-        list.innerHTML = '<div class="alert-item" style="color:var(--text-dim)">No alerts in the last 48 hours</div>';
+    if (!email) {
+        toast('Please enter an email!');
         return;
     }
 
-    list.innerHTML = data.map(a => {
-        const time = a.sent_at ? new Date(a.sent_at + 'Z').toLocaleString() : '';
-        const typeColors = {
-            restock: 'var(--green)', price_drop: 'var(--blue)',
-            out_of_stock: 'var(--red)', sighting: 'var(--yellow)',
-            store_available: 'var(--accent)', price_threshold: 'var(--blue)'
-        };
-        const color = typeColors[a.alert_type] || 'var(--text-dim)';
-        return `<div class="alert-item">
-            <div>${a.message}</div>
-            <div style="margin-top:4px">
-                <span class="alert-time">${time}</span>
-                <span class="alert-type" style="color:${color}">${a.alert_type}</span>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-// ─── Wishlist ───
-async function loadWishlist() {
-    const data = await api('/api/wishlist');
-    const el = document.getElementById('wishlistContent');
-
-    if (!data.length) {
-        el.innerHTML = '<div style="color:var(--text-dim); padding:20px; text-align:center">No tracked products. Click "+ Track" to start.</div>';
+    if (!email.includes('@')) {
+        toast('Please enter a valid email!');
         return;
     }
 
-    el.innerHTML = data.map(s => `
-        <div class="store-row" style="margin-bottom:8px">
-            <div>
-                <div class="store-name">${s.product}</div>
-                <div style="font-size:12px; color:var(--text-dim)">
-                    ${s.max_price ? `Max: AED ${s.max_price}` : 'Any price'}
-                </div>
-            </div>
-            <button class="btn btn-sm btn-red" onclick="untrack('${s.product}')">Remove</button>
-        </div>
-    `).join('');
-}
-
-async function untrack(product) {
-    await api('/api/untrack', { method: 'POST', body: JSON.stringify({ product }) });
-    toast('Removed from wishlist');
-    loadWishlist();
-}
-
-// ─── Background checker ───
-async function checkBgStatus() {
-    const data = await api('/api/check/status');
-    bgRunning = data.background_running;
-    updateBgBtn();
-}
-
-function updateBgBtn() {
-    const btn = document.getElementById('bgBtn');
-    if (bgRunning) {
-        btn.textContent = '⏸ Stop Auto';
-        btn.classList.add('btn-green');
-    } else {
-        btn.textContent = '▶ Auto-Check';
-        btn.classList.remove('btn-green');
-    }
-}
-
-async function toggleBackground() {
-    if (bgRunning) {
-        await api('/api/background/stop', { method: 'POST' });
-        bgRunning = false;
-        toast('Auto-check stopped');
-    } else {
-        await api('/api/background/start', { method: 'POST', body: JSON.stringify({ interval: 120 }) });
-        bgRunning = true;
-        toast('Auto-check started (every 2 min)');
-    }
-    updateBgBtn();
-}
-
-async function runCheck() {
-    toast('Running full check...');
-    const data = await api('/api/check', { method: 'POST', body: '{}' });
-    toast(`Done! ${data.checks || 0} checked, ${data.changes || 0} changes`);
-    refreshDashboard();
-    loadAlerts();
-}
-
-// ─── Tabs ───
-function switchTab(tab, el) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    ['products', 'alerts', 'wishlist'].forEach(t => {
-        document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
+    const data = await api('/api/email-subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ email, products: [] })
     });
-    if (tab === 'alerts') loadAlerts();
-    if (tab === 'wishlist') loadWishlist();
+
+    if (data.success) {
+        toast('✨ Check your email for confirmation!');
+        document.getElementById('emailInput').value = '';
+        const conf = document.getElementById('emailConfirmation');
+        conf.textContent = `✅ ${email} subscribed! You'll get alerts for all toys.`;
+        conf.classList.add('show');
+        setTimeout(() => conf.classList.remove('show'), 4000);
+    } else {
+        toast('Error: ' + (data.error || 'Try again'));
+    }
 }
 
-// Auto-refresh every 30s
-setInterval(() => {
-    refreshDashboard();
-}, 30000);
+// Populate product selects
+function populateSelects(products) {
+    const opts = products.map(p => {
+        const emoji = getEmoji(p.canonical_name);
+        const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
+        return `<option value="${p.canonical_name}">${emoji} ${name}</option>`;
+    }).join('');
+
+    document.getElementById('sightProduct').innerHTML = opts;
+}
 </script>
 </body>
 </html>
