@@ -123,8 +123,7 @@ PRODUCTS = [
     {"canonical_name": "NeeDoh Fuzz Ball Wild Cats", "variant": None, "aliases": ["Fuzz Ball Wild Cats", "Wild Cats Fuzz Ball", "Fuzzy Cats"]},
     # 56 - Groovy Jewel
     {"canonical_name": "NeeDoh Groovy Jewel", "variant": None, "aliases": ["Groovy Jewel", "Jewel NeeDoh", "Globby Jewel"]},
-    # 57 - Cloud Pleaser
-    {"canonical_name": "NeeDoh Cloud Pleaser", "variant": None, "aliases": ["Cloud Pleaser", "Cloud NeeDoh", "Nee Doh Cloud"]},
+    # 57 - (removed: Cloud Pleaser — product not verified)
     # 58 - Bubble Glob
     {"canonical_name": "NeeDoh Bubble Glob", "variant": None, "aliases": ["Bubble Glob", "Bubble NeeDoh", "Nee Doh Bubble"]},
     # 59 - Baby Boos
@@ -244,7 +243,7 @@ SEARCH_TERMS = {
     54: "needoh+good+vibes+heart", # Good Vibes Only Heart
     55: "needoh+fuzz+ball+wild+cats", # Fuzz Ball Wild Cats
     56: "needoh+groovy+jewel",   # Groovy Jewel
-    57: "needoh+cloud+pleaser",  # Cloud Pleaser
+    # 57 removed (Cloud Pleaser)
     58: "needoh+bubble+glob",    # Bubble Glob
     59: "needoh+baby+boos",      # Baby Boos
     60: "needoh+dohzee",         # Dohzee

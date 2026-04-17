@@ -1365,7 +1365,6 @@ const PRODUCT_IMAGES = {
     'Ripples':        'https://www.curiousmindsbusybags.com/cdn/shop/files/needohsuperripples1.jpg?v=1737322260',
     'Good Vibes':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GVND-Nee-Doh-Good-Vibes-Only-Package-StayGroovy-3Q-Right.jpg',
     'Wild Cats':      'https://www.rocketcitytoys.com/cdn/shop/files/20260109100747-da2122a8-la.jpg?v=1771962470&width=800',
-    'Cloud Pleaser':  'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SFZBND-NeeDoh-Super-FuzzBall-Product-Group.jpg',
     'Bubble Glob':    'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/BTSQ-Bubble-Glob-Nee-Doh-Lifestyle-web.jpg',
     'Baby Boos':      'https://www.rocketcitytoys.com/cdn/shop/files/NDWBB26.jpg?v=1766956087&width=800',
     'Dohzee':         'https://www.curiousmindsbusybags.com/cdn/shop/products/dohzeeneedoh2.jpg?v=1611789106',
@@ -1406,7 +1405,7 @@ const PRODUCT_EMOJIS = {
     'Squeezy Peezy': '😊', 'Happy Snappy': '🐊',
     'Squeeze Hearts': '💖', 'Ripples': '🌊',
     'Flower Power': '🌸', 'Good Vibes': '💝',
-    'Wild Cats': '🐾', 'Cloud Pleaser': '☁️',
+    'Wild Cats': '🐾',
     'Bubble Glob': '🫧', 'Baby Boos': '👶', 'Dohzee': '😴',
     'Glowy Ghost': '👻', 'Sugar Skull': '💀', 'Cool Cane': '🍬',
     'Golden Egg': '🥇', 'Stickums': '🪄', 'Swirl': '🌀',
@@ -1789,9 +1788,17 @@ if __name__ == '__main__':
             else:
                 print(f"  ✓ Desertcart store already exists")
 
+            # Migration: remove Cloud Pleaser (unverified product)
+            cloud = conn.execute("SELECT id FROM products WHERE canonical_name = 'NeeDoh Cloud Pleaser'").fetchone()
+            if cloud:
+                conn.execute("DELETE FROM listings WHERE product_id = ?", (cloud['id'],))
+                conn.execute("DELETE FROM products WHERE id = ?", (cloud['id'],))
+                print("  ✓ Removed Cloud Pleaser (unverified product)")
+
+            final_products = conn.execute("SELECT COUNT(*) as cnt FROM products").fetchone()['cnt']
             final_listings = conn.execute("SELECT COUNT(*) as cnt FROM listings").fetchone()['cnt']
             final_stores = conn.execute("SELECT COUNT(*) as cnt FROM stores").fetchone()['cnt']
-            print(f"  ✓ DB OK: {product_count} products, {final_stores} stores, {final_listings} listings")
+            print(f"  ✓ DB OK: {final_products} products, {final_stores} stores, {final_listings} listings")
 
             # Add delivery_estimate column if missing (migration)
             try:
