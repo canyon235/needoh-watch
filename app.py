@@ -1297,10 +1297,10 @@ function renderProducts(products) {
 
         // Store logo URLs
         const storeLogos = {
-            'Amazon': 'https://www.amazon.ae/favicon.ico',
-            'Noon': 'https://f.nooncdn.com/s/app/com/common/images/favicons/favicon-32x32.png',
-            'Desertcart': 'https://www.desertcart.ae/favicon.ico',
-            'Ubuy': 'https://www.ubuy.ae/favicon.ico',
+            'Amazon': 'https://www.google.com/s2/favicons?domain=amazon.ae&sz=32',
+            'Noon': 'https://www.google.com/s2/favicons?domain=noon.com&sz=32',
+            'Desertcart': 'https://www.google.com/s2/favicons?domain=desertcart.ae&sz=32',
+            'Ubuy': 'https://www.google.com/s2/favicons?domain=ubuy.ae&sz=32',
         };
         function storeIcon(name) {
             const key = Object.keys(storeLogos).find(k => name.includes(k));
