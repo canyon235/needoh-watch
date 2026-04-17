@@ -99,6 +99,8 @@ PRODUCTS = [
     {"canonical_name": "NeeDoh Fuzz Ball Wonder Waves", "variant": None, "aliases": ["Wonder Waves", "Fuzz Ball Wonder Waves", "Wavy Fuzz Ball"]},
     # 44 - Dohnut Jelly Squeeze
     {"canonical_name": "NeeDoh Dohnut Jelly Squeeze", "variant": None, "aliases": ["Dohnut Jelly Squeeze", "Jelly Donut", "Dohnut Jelly"]},
+    # 45 - Fuzz Ball Teenie
+    {"canonical_name": "NeeDoh Fuzz Ball Teenie", "variant": None, "aliases": ["Fuzz Ball Teenie", "Teenie Fuzz Ball", "Mini Fuzz Ball"]},
 ]
 
 STORES = [
@@ -184,6 +186,7 @@ SEARCH_TERMS = {
     42: "needoh+marble+egg",   # Marble Egg
     43: "needoh+fuzz+ball+wonder+waves", # Fuzz Ball Wonder Waves
     44: "needoh+dohnut+jelly+squeeze", # Dohnut Jelly Squeeze
+    45: "needoh+fuzz+ball+teenie", # Fuzz Ball Teenie
 }
 
 STORE_URL_TEMPLATES = {
