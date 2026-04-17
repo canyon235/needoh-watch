@@ -481,12 +481,13 @@ class NoonScraper(BaseScraper):
 
     def _build_product_url(self, hit):
         """Build a proper Noon product URL from API hit data.
-        Format: https://www.noon.com/uae-en/{slug}/p/{sku}/
+        Format: https://www.noon.com/uae-en/{slug}/{sku}/p/
+        Note: /p/ comes AFTER the SKU, not before.
         """
         slug = hit.get('url', '')
         sku = hit.get('sku', '')
         if slug and sku:
-            return f"https://www.noon.com/uae-en/{slug}/p/{sku}/"
+            return f"https://www.noon.com/uae-en/{slug}/{sku}/p/"
         elif slug:
             return f"https://www.noon.com/uae-en/{slug}/"
         return ''
