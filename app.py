@@ -1335,10 +1335,9 @@ function renderProducts(products) {
                 if (sl.stock_status === 'IN_STOCK' && sl.delivery_estimate) {
                     deliveryShort = '📦 ' + sl.delivery_estimate;
                 }
-                // Buy icon — only show when in stock with a valid URL
+                // Buy icon — show when in stock with any URL (search or product page)
                 let buyIcon = '';
-                const isSearchUrl = sl.url && (sl.url.includes('/search?') || sl.url.includes('/s?k=') || sl.url.includes('/sr?q='));
-                if (sl.stock_status === 'IN_STOCK' && sl.url && !isSearchUrl) {
+                if (sl.stock_status === 'IN_STOCK' && sl.url) {
                     buyIcon = `<a href="${sl.url}" target="_blank" rel="noopener" class="buy-icon-link" title="Buy from ${storeShort}">🛒</a>`;
                 }
                 const icon = storeIcon(sl.store_name);
