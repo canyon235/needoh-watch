@@ -675,6 +675,7 @@ DASHBOARD_HTML = r"""
             font-size: 12px;
             font-weight: 700;
             margin-bottom: 12px;
+            text-align: center;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
