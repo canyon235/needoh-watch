@@ -1279,7 +1279,7 @@ DASHBOARD_HTML = r"""
 // Product image mapping — boxed/packaged images preferred
 // Source: birdinhand.com (official Schylling distributor), with fallbacks to retailer CDNs
 const PRODUCT_IMAGES = {
-    // === Packaging/box images — needoh.org, birdinhand, myneedoh.com ===
+    // === BOX/PACKAGING images — birdinhand PKG, maziply packaging, Schylling CDN ===
     // IMPORTANT: More specific names MUST come before shorter ones
     // (e.g. "Nice Cube Swirl" before "Nice Cube") because matching uses .includes()
 
@@ -1289,20 +1289,20 @@ const PRODUCT_IMAGES = {
     'Nice Cube':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/NCBND-NeeDoh-Nice-Cube-Pkg-3QR-Blue-web.jpg',
 
     // Super variants — specific names first
-    'Super NeeDoh Cool':'https://needoh.org/images/needoh-giant-coolcats1.jpg',
-    'Super NeeDoh':   'https://needoh.org/images/needoh-giant-classic1.jpg',
+    'Super NeeDoh Cool':'https://birdinhand.com/cdn/shop/files/CCSPND-Super-NeeDoh-CoolCats-Pkg-3Q-Right-web_2000x2000.jpg?v=1738051385',
+    'Super NeeDoh':   'https://www.maziply.com/cdn/shop/products/schylling-super-needoh-fidget-ball-packaging.jpg?v=1679400979',
     'Super Marble':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/ScreenShot2022-08-15at1.29.56PM.png',
 
     // Nice Berg variants — specific first
     'Nice Berg Swirl':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SWSNCBND-NeeDoh-Swirl-Nice-Berg-Pkg-3Q-Right_1.jpg',
     'Nice Berg':      'https://needoh.org/images/needoh-giant-niceberg1.jpg',
 
-    // Fuzz Ball variants — most specific first
-    'Fuzz Ball Wonder Waves':'https://www.curiousmindsbusybags.com/cdn/shop/files/needoh_fuzz_wonder_wave_12.jpg?v=1742476008',
-    'Fuzz Ball Flower Power':'https://www.curiousmindsbusybags.com/cdn/shop/files/Needoh_flower_power_11.jpg?v=1743025259',
-    'Fuzz Ball Wild Cats':'https://www.rocketcitytoys.com/cdn/shop/files/20260109100747-da2122a8-la.jpg?v=1771962470&width=800',
-    'Fuzz Ball Teenie':'https://www.curiousmindsbusybags.com/cdn/shop/files/teeniefuzzball1.jpg?v=1758478762',
-    'Fuzz Ball':      'https://www.curiousmindsbusybags.com/cdn/shop/files/needohfuzzball3copy.jpg?v=1742476010',
+    // Fuzz Ball variants — most specific first (each with UNIQUE box image)
+    'Fuzz Ball Wonder Waves':'https://needoh.org/images/needoh-fuzzball-wonderwaves1.jpg',
+    'Fuzz Ball Flower Power':'https://needoh.org/images/needoh-fuzzball-flowerpower1.png',
+    'Fuzz Ball Wild Cats':'https://birdinhand.com/cdn/shop/files/WCFZBND_Image1_3000x3000.jpg?v=1770483372',
+    'Fuzz Ball Teenie':'https://target.scene7.com/is/image/Target/GUEST_a6504000-354f-40bc-914b-cce278f27009?wid=800&hei=800&fmt=pjpeg',
+    'Fuzz Ball':      'https://target.scene7.com/is/image/Target/GUEST_6f85a311-2bf8-463d-8fad-194c827a6306?wid=800&hei=800&fmt=pjpeg',
 
     // Glow in the Dark before other "Glow" matches
     'Glow in the Dark':'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GND-Nee-Doh-Glow-in-the-Dark-PKG-3Q-Right-web.jpg',
@@ -1312,8 +1312,8 @@ const PRODUCT_IMAGES = {
     'Dohnuts':        'https://needoh.org/images/needoh-dohnuts1.jpg',
 
     // Groovy variants — specific first
-    'Groovy Shroom':  'https://sterlingtoystore.com/cdn/shop/files/Groovy_Shroom_Nee_Doh.png?v=1722627251&width=800',
-    'Groovy Fruit':   'https://www.curiousmindsbusybags.com/cdn/shop/products/needohfruit8.jpg?v=1598371015',
+    'Groovy Shroom':  'https://www.maziply.com/cdn/shop/products/schylling-needoh-groovy-shroom-fidget-toy-packaging.jpg?v=1679403026',
+    'Groovy Fruit':   'https://birdinhand.com/cdn/shop/products/GFND-Nee-Doh-Groovy-Fruit-PKG-3Q-Right-web_2000x2000.jpg?v=1611077875',
     'Groovy Jewel':   'https://www.curiousmindsbusybags.com/cdn/shop/files/needohjewel2.jpg?v=1761055735',
 
     // Snow variants — specific first
@@ -1321,61 +1321,61 @@ const PRODUCT_IMAGES = {
     'Snow Globe':     'https://littleshop.toys/cdn/shop/files/needoh-snow-globe-sqmsg24-791759.jpg?v=1730760880&width=800',
 
     // Color Change before other "Color" matches
-    'Color Change':   'https://needoh.org/images/needoh-color-changing1.jpg',
+    'Color Change':   'https://birdinhand.com/cdn/shop/products/CCSQ-Color-Change-Nee-Doh-PKG-3Q-Right-Blue-web_2000x2000.jpg?v=1611076747',
 
     // All other products (alphabetical)
     'Classic':        'https://needoh.org/images/needoh-classic-groovy-glob1.jpg',
     'Gummy Bear':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GBND-NeeDoh-Gummy-Bear-Pkg-3Q-Right-Pink-web.jpg',
-    'Cool Cats':      'https://needoh.org/images/needoh-coolcats1.jpg',
-    'Gumdrop':        'https://needoh.org/images/needoh-gumdrop1.jpg',
-    'Dream Drop':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/DRDND_Image1.jpg',
+    'Cool Cats':      'https://www.maziply.com/cdn/shop/products/schylling-needoh-cool-cats-squishy-fidget-toy-packaging.jpg?v=1665513423',
+    'Gumdrop':        'https://birdinhand.com/cdn/shop/files/GDND-NeeDoh-Gumdrop-Pkg-3QR-Orange-web_2000x2000.jpg?v=1754857450',
+    'Dream Drop':     'https://birdinhand.com/cdn/shop/files/DRDND_Image1_2000x2000.jpg?v=1738051780',
     'Mac N Squeeze':  'https://myneedoh.com/wp-content/uploads/2024/10/nd10.jpg',
-    'Ramen':          'https://www.curiousmindsbusybags.com/cdn/shop/products/ramennoodles7.jpg?v=1687729189',
+    'Ramen':          'https://birdinhand.com/cdn/shop/products/RNL-Noodlies-Ramen-Pkg-Front-web_2000x2000.jpg?v=1616861094',
     'Dig It Pig':     'https://needoh.org/images/needoh-digitpig1.jpg',
     'Shaggy':         'https://myneedoh.com/wp-content/uploads/2024/10/nd11.jpg',
-    'Stardust':       'https://myneedoh.com/wp-content/uploads/2024/10/nd7.jpg',
-    'Crystal':        'https://myneedoh.com/wp-content/uploads/2024/10/nd8.jpg',
-    'Marbleez':       'https://www.curiousmindsbusybags.com/cdn/shop/files/needohmarbleez1copy.jpg?v=1775867879',
-    'Nice-Sicle':     'https://www.curiousmindsbusybags.com/cdn/shop/files/needohpopsicle1copy.jpg?v=1771377353',
-    'Dohjees':        'https://myneedoh.com/wp-content/uploads/2025/12/81.jpg',
-    'Panic Pete':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/NDPPST-NeeDoh-Panic-Pete-Squeeze-Green2-web.jpg',
+    'Stardust':       'https://birdinhand.com/cdn/shop/products/SDSB-Stardust-Shimmer-Nee-Doh-PKG-3Q-Right-Purple-web_2000x2000.jpg?v=1641673372',
+    'Crystal':        'https://birdinhand.com/cdn/shop/products/CSB-Crystal-Squeeze-Nee-Doh-PKG-3Q-Right-Purple-web_2000x2000.jpg?v=1624043080',
+    'Marbleez':       'https://birdinhand.com/cdn/shop/files/MRBND-NeeDoh-Marbleez-Pkg-web_2000x2000.jpg?v=1728417420',
+    'Nice-Sicle':     'https://birdinhand.com/cdn/shop/files/NIND_Image4_3000x3000.jpg?v=1770484748',
+    'Dohjees':        'https://birdinhand.com/cdn/shop/products/DJ-Dohjees-Pkg-3Q-Right-web_2000x2000.jpg?v=1645476658',
+    'Panic Pete':     'https://birdinhand.com/cdn/shop/products/IMG_7669_2780e014-8129-4fa1-9d62-16a057a75c47_3024x4032.jpg?v=1601751322',
     'Chickadeedoos':  'https://cdn11.bigcommerce.com/s-65gzldhg/images/stencil/1280x1280/products/8565/11515/chickadeedoos_blue_CDDND24__99485.1705010497.jpg?c=2',
-    'Jelly Squish':   'https://needoh.org/images/needoh-jellyfish1.jpg',
+    'Jelly Squish':   'https://birdinhand.com/cdn/shop/files/JSND-Jelly-Squish-Nee-Doh-Product-Purplecopy_2000x2000.jpg?v=1769618275',
     'Teenie':         'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/TSNDA_Image1.jpg',
     'Peace O Cake':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/POCND_Image2.jpg',
     'Dippin Dazzler': 'https://target.scene7.com/is/image/Target/GUEST_893acc13-f899-4ca8-bc3b-2befce010ce1?wid=800&hei=800&fmt=pjpeg',
     'Jelly Hops':     'https://www.curiousmindsbusybags.com/cdn/shop/files/needohjellyhop_36568f89-6a58-43ad-8d11-a7e91caa2f89.jpg?v=1771378337',
     'Nice Ice Baby':  'https://needoh.org/images/needoh-nice-ice-baby1.jpg',
-    'Nice Cream Cone':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/NCCND_Image2.jpg',
+    'Nice Cream Cone':'https://needoh.org/images/needoh-nice-cream1.avif',
     'Mello Mallo':    'https://needoh.org/images/needoh-mello-mallo1.jpg',
     'Booper':         'https://www.curiousmindsbusybags.com/cdn/shop/products/needohbooper1.jpg?v=1668101186',
     'Funky Pups':     'https://needoh.org/images/needoh-funkypup1.jpg',
-    'Hot Shot':       'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/HSTND-NeeDoh-Hot-Shots-Product-Football-Hand.jpg',
+    'Hot Shot':       'https://birdinhand.com/cdn/shop/files/HSTND-Hot-Shots-NeeDoh-PKG-3Q-Right_2000x2000.jpg?v=1769226275',
     'Squeezza Pizza': 'https://www.curiousmindsbusybags.com/cdn/shop/files/needohpizza1copy.jpg?v=1771376155',
     'Atomic':         'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/AtomicNeeDoh02.jpg',
-    'Sploot Splat':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/thesplootsplat.jpg',
+    'Sploot Splat':   'https://birdinhand.com/cdn/shop/files/splootsplat_1600x1600.jpg?v=1754540437',
     'Lava Squish':    'https://www.junioredition.com/cdn/shop/files/Needoh-AW24-Lava-Squish-And-Flow-Squishy-Toy-4.jpg?v=1728899247&width=800',
     'Advent Calendar':'https://needoh.org/images/needoh-advent-calendar1.jpg',
     'Marble Egg':     'https://needoh.org/images/needoh-egg1.jpg',
-    'Wonder Waves':   'https://www.curiousmindsbusybags.com/cdn/shop/files/needoh_fuzz_wonder_wave_12.jpg?v=1742476008',
-    'Flower Power':   'https://www.curiousmindsbusybags.com/cdn/shop/files/Needoh_flower_power_11.jpg?v=1743025259',
+    'Wonder Waves':   'https://needoh.org/images/needoh-fuzzball-wonderwaves1.jpg',
+    'Flower Power':   'https://needoh.org/images/needoh-fuzzball-flowerpower1.png',
     'Squeezy Peezy':  'https://www.thestorebeforetime.com/cdn/shop/files/8D5C32F6-FB36-4301-A84B-F5C488956414.png?v=1719098098&width=800',
     'Happy Snappy':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_6400_49fe78f7-3461-4f67-bba4-f12e0cc38be1.jpg',
     'Squeeze Hearts': 'https://aneoliving.com/cdn/shop/files/Schylling-NeeDoh-Teenie-Squeeze-Hearts-Pack-of-3-Fidget-Toys.webp?v=1743012828',
     'Ripples':        'https://www.curiousmindsbusybags.com/cdn/shop/files/needohsuperripples1.jpg?v=1737322260',
     'Good Vibes':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GVND-Nee-Doh-Good-Vibes-Only-Package-StayGroovy-3Q-Right.jpg',
-    'Wild Cats':      'https://www.rocketcitytoys.com/cdn/shop/files/20260109100747-da2122a8-la.jpg?v=1771962470&width=800',
-    'Bubble Glob':    'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/BTSQ-Bubble-Glob-Nee-Doh-Lifestyle-web.jpg',
+    'Wild Cats':      'https://birdinhand.com/cdn/shop/files/WCFZBND_Image1_3000x3000.jpg?v=1770483372',
+    'Bubble Glob':    'https://birdinhand.com/cdn/shop/products/BTSQ-Bubble-Glob-Nee-Doh-PKG-3Q-Right-Purple-web_2000x2000.jpg?v=1640722254',
     'Baby Boos':      'https://www.rocketcitytoys.com/cdn/shop/files/NDWBB26.jpg?v=1766956087&width=800',
-    'Dohzee':         'https://www.curiousmindsbusybags.com/cdn/shop/products/dohzeeneedoh2.jpg?v=1611789106',
+    'Dohzee':         'https://www.maziply.com/cdn/shop/products/schylling-needoh-dohzee-fidget-ball-packaging.jpg?v=1665512139',
     'Glowy Ghost':    'https://www.isaacstreasures.com/wp-content/uploads/2025/10/wp-image-77402901807484.webp',
-    'Sugar Skull':    'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SSCCND-NeeDoh-SugarSkull-CoolCats-PKG-3Q-Right-White2.jpg',
+    'Sugar Skull':    'https://birdinhand.com/cdn/shop/files/SSCCND-NeeDoh-SugarSkull-CoolCats-PKG-3Q-Right-White3_3360x2832.jpg?v=1769618481',
     'Cool Cane':      'https://www.junioredition.com/cdn/shop/files/Schylling-AW25-Needoh-Squishmas-Cool-Cane-Squishy.jpg?v=1762518843&width=800',
     'Golden Egg':     'https://www.curiousmindsbusybags.com/cdn/shop/files/NEEDOHEGGHUNT1.jpg?v=1771378256',
     'Stickums':       'https://www.curiousmindsbusybags.com/cdn/shop/products/needohstickums1.jpg?v=1654039604',
-    'Swirl':          'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/SWND-Swirl-Nee-Doh-Item-GreenLime-web.jpg',
+    'Swirl':          'https://birdinhand.com/cdn/shop/products/SWND-Swirl-Nee-Doh-PKG-3Q-Right-Green-web_2000x2000.jpg?v=1617406364',
     'Gobs of Globs':  'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GGTND-Gobs-of-Globs-Pkg-3Q-Left-web.jpg',
-    'Noodlies':       'https://www.curiousmindsbusybags.com/cdn/shop/products/ramennoodles7.jpg?v=1687729189',
+    'Noodlies':       'https://birdinhand.com/cdn/shop/products/RNL-Noodlies-Ramen-Pkg-Front-web_2000x2000.jpg?v=1616861094',
 };
 
 // Fallback emojis if image fails to load
