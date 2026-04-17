@@ -1269,9 +1269,12 @@ const PRODUCT_IMAGES = {
     'Nice Berg Swirl':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SWSNCBND-NeeDoh-Swirl-Nice-Berg-Pkg-3Q-Right_1.jpg',
     'Nice Berg':      'https://needoh.org/images/needoh-giant-niceberg1.jpg',
 
-    // Fuzz Ball variants — specific first
+    // Fuzz Ball variants — most specific first
+    'Fuzz Ball Wonder Waves':'https://www.curiousmindsbusybags.com/cdn/shop/files/needoh_fuzz_wonder_wave_12.jpg?v=1742476008',
+    'Fuzz Ball Flower Power':'https://www.curiousmindsbusybags.com/cdn/shop/files/Needoh_flower_power_11.jpg?v=1743025259',
+    'Fuzz Ball Wild Cats':'https://www.rocketcitytoys.com/cdn/shop/files/20260109100747-da2122a8-la.jpg?v=1771962470&width=800',
     'Fuzz Ball Teenie':'https://www.curiousmindsbusybags.com/cdn/shop/files/teeniefuzzball1.jpg?v=1758478762',
-    'Fuzz Ball':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SFZBND-NeeDoh-Super-FuzzBall-Product-Group.jpg',
+    'Fuzz Ball':      'https://www.curiousmindsbusybags.com/cdn/shop/files/needohfuzzball3copy.jpg?v=1742476010',
 
     // Glow in the Dark before other "Glow" matches
     'Glow in the Dark':'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GND-Nee-Doh-Glow-in-the-Dark-PKG-3Q-Right-web.jpg',
@@ -1326,14 +1329,14 @@ const PRODUCT_IMAGES = {
     'Lava Squish':    'https://www.junioredition.com/cdn/shop/files/Needoh-AW24-Lava-Squish-And-Flow-Squishy-Toy-4.jpg?v=1728899247&width=800',
     'Advent Calendar':'https://needoh.org/images/needoh-advent-calendar1.jpg',
     'Marble Egg':     'https://needoh.org/images/needoh-egg1.jpg',
-    'Wonder Waves':   'https://needoh.org/images/needoh-fuzzball-wonderwaves1.jpg',
-    'Flower Power':   'https://needoh.org/images/needoh-fuzzball-flowerpower1.png',
+    'Wonder Waves':   'https://www.curiousmindsbusybags.com/cdn/shop/files/needoh_fuzz_wonder_wave_12.jpg?v=1742476008',
+    'Flower Power':   'https://www.curiousmindsbusybags.com/cdn/shop/files/Needoh_flower_power_11.jpg?v=1743025259',
     'Squeezy Peezy':  'https://www.thestorebeforetime.com/cdn/shop/files/8D5C32F6-FB36-4301-A84B-F5C488956414.png?v=1719098098&width=800',
     'Happy Snappy':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_6400_49fe78f7-3461-4f67-bba4-f12e0cc38be1.jpg',
     'Squeeze Hearts': 'https://aneoliving.com/cdn/shop/files/Schylling-NeeDoh-Teenie-Squeeze-Hearts-Pack-of-3-Fidget-Toys.webp?v=1743012828',
     'Ripples':        'https://www.curiousmindsbusybags.com/cdn/shop/files/needohsuperripples1.jpg?v=1737322260',
     'Good Vibes':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GVND-Nee-Doh-Good-Vibes-Only-Package-StayGroovy-3Q-Right.jpg',
-    'Wild Cats':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/WCFZBND_Image2.jpg',
+    'Wild Cats':      'https://www.rocketcitytoys.com/cdn/shop/files/20260109100747-da2122a8-la.jpg?v=1771962470&width=800',
     'Cloud Pleaser':  'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SFZBND-NeeDoh-Super-FuzzBall-Product-Group.jpg',
     'Bubble Glob':    'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/BTSQ-Bubble-Glob-Nee-Doh-Lifestyle-web.jpg',
     'Baby Boos':      'https://www.rocketcitytoys.com/cdn/shop/files/NDWBB26.jpg?v=1766956087&width=800',
