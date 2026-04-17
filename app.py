@@ -249,7 +249,7 @@ def api_diagnostics():
     diag = {
         'python_version': __import__('sys').version,
         'background_running': bg_running,
-        'check_interval': 900,
+        'check_interval': 43200,
         'timestamp': datetime.utcnow().isoformat(),
     }
 
@@ -347,60 +347,39 @@ def self_ping():
     except Exception:
         pass
 
-def background_checker(interval=180):
+def background_checker(interval=43200):
     """Run stock checks in background.
-    On startup: runs an aggressive initial sweep (100 listings/batch, 30s interval)
-    to quickly populate all products. Then switches to normal mode (20/batch, 3 min).
+    Checks all listings twice per day (every 12 hours) to conserve ScraperAPI credits.
+    No aggressive initial sweep — products show last known status or 'NOT LISTED'.
     Also self-pings to prevent Render free tier from spinning down the instance.
     """
     global bg_running
     bg_running = True
 
-    # --- Initial sweep: check all listings fast after deploy/restart ---
-    print(f"🚀 Initial sweep: checking all listings quickly...", flush=True)
-    sweep_done = False
-    sweep_cycles = 0
-    while bg_running and not sweep_done:
-        try:
-            checker.reset_stats()
-            stats = checker.run_check_cycle(max_listings=100)  # Big batches
-            sweep_cycles += 1
-            checked = stats['checks']
-            print(f"  ⚡ Sweep #{sweep_cycles}: {checked} checked, {stats['changes']} changes, {stats['errors']} errors", flush=True)
-            if checked == 0:
-                sweep_done = True  # No more listings due
-        except Exception as e:
-            print(f"  ✗ Sweep error: {e}", flush=True)
-            sweep_done = True  # Don't loop forever on errors
+    # --- Single initial check: one small batch on startup, then wait ---
+    print(f"🔄 Background checker running (interval: {interval}s = {interval//3600}h)", flush=True)
+    print(f"  Credit-saving mode: checking ~68 listings per cycle, 2x per day", flush=True)
 
-        if not sweep_done:
-            for _ in range(30):  # 30s between sweep batches
-                if not bg_running:
-                    break
-                time.sleep(1)
-
-    print(f"✅ Initial sweep complete after {sweep_cycles} cycles. Switching to normal mode.", flush=True)
-
-    # --- Normal mode: steady checks ---
-    print(f"🔄 Background checker running (interval: {interval}s)", flush=True)
     ping_counter = 0
     while bg_running:
         try:
             checker.reset_stats()
-            stats = checker.run_check_cycle()
-            print(f"  ✓ Background check: {stats['checks']} checked, {stats['changes']} changes, {stats['errors']} errors")
+            # Check all listings in one go (68 products × 4 stores = 272, but due check filters)
+            stats = checker.run_check_cycle(max_listings=300)
+            print(f"  ✓ Stock check: {stats['checks']} checked, {stats['changes']} changes, {stats['errors']} errors", flush=True)
         except Exception as e:
-            print(f"  ✗ Background check error: {e}")
+            print(f"  ✗ Stock check error: {e}", flush=True)
 
-        # Self-ping every 5 cycles (~15 min) to keep Render instance alive
+        # Self-ping every 30 min to keep Render instance alive
         ping_counter += 1
-        if ping_counter % 5 == 0:
-            self_ping()
-
-        for _ in range(interval):
+        for i in range(interval):
             if not bg_running:
                 break
             time.sleep(1)
+            # Self-ping every 30 minutes (1800 seconds)
+            if i > 0 and i % 1800 == 0:
+                self_ping()
+
     print("⏹ Background checker stopped")
 
 
@@ -409,7 +388,7 @@ def start_background():
     global bg_thread, bg_running
     if bg_running:
         return jsonify({'status': 'already_running'})
-    interval = request.json.get('interval', 180) if request.json else 180
+    interval = request.json.get('interval', 43200) if request.json else 43200
     bg_thread = threading.Thread(target=background_checker, args=(interval,), daemon=True)
     bg_thread.start()
     return jsonify({'status': 'started', 'interval': interval})
@@ -1536,9 +1515,9 @@ function renderProducts(products) {
             statusText = '✅ AVAILABLE';
         } else if (!p.last_check) {
             statusClass = 'status-checking';
-            statusText = '⏳ CHECKING...';
+            statusText = '🔍 PENDING CHECK';
         } else if (allUnknown) {
-            statusClass = 'status-checking';
+            statusClass = 'status-out-of-stock';
             statusText = '🔍 NOT LISTED';
         } else {
             statusClass = 'status-out-of-stock';
@@ -1769,7 +1748,7 @@ if __name__ == '__main__':
                 print("  Adding Desertcart store...")
                 cursor = conn.execute(
                     """INSERT INTO stores (name, type, city, base_url, supports_store_check, check_interval_minutes)
-                       VALUES ('Desertcart', 'online', 'UAE', 'https://www.desertcart.ae', 0, 15)"""
+                       VALUES ('Desertcart', 'online', 'UAE', 'https://www.desertcart.ae', 0, 720)"""
                 )
                 dc_store_id = cursor.lastrowid
 
@@ -1838,6 +1817,10 @@ if __name__ == '__main__':
                 conn.execute("DELETE FROM products WHERE id = ?", (dup['id'],))
                 print("  ✓ Removed duplicate 'Color Change Cube' (same as 'Color Change')")
 
+            # Migration: Set all store check intervals to 720 min (12h) to conserve ScraperAPI credits
+            conn.execute("UPDATE stores SET check_interval_minutes = 720 WHERE check_interval_minutes < 720")
+            print("  ✓ All store check intervals set to 720 min (12h)")
+
             # Migration: Fix conflicting aliases
             alias_fixes = {
                 'NeeDoh Nice Cube': ['Nice Cube', 'Schylling Nice Cube', 'Nee Doh Nice Cube'],
@@ -1871,9 +1854,10 @@ if __name__ == '__main__':
         print(f"  ⚠ Database migration error: {e}")
 
     # Always start background checker — this is a monitoring tool
-    bg_thread = threading.Thread(target=background_checker, args=(180,), daemon=True)
+    # 43200s = 12 hours between full checks (2x per day to conserve ScraperAPI credits)
+    bg_thread = threading.Thread(target=background_checker, args=(43200,), daemon=True)
     bg_thread.start()
-    print("  ✓ Background checker started (3 min cycle, 20 listings/batch)")
+    print("  ✓ Background checker started (12h cycle, credit-saving mode)")
 
     print(f"\n{'='*50}")
     print(f"  🎯 NeeDoh Watch UAE")

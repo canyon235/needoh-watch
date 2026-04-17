@@ -155,7 +155,7 @@ STORES = [
         "city": "UAE",
         "base_url": "https://www.amazon.ae",
         "supports_store_check": 0,
-        "check_interval_minutes": 5
+        "check_interval_minutes": 720
     },
     {
         "name": "Noon",
@@ -163,7 +163,7 @@ STORES = [
         "city": "UAE",
         "base_url": "https://www.noon.com",
         "supports_store_check": 0,
-        "check_interval_minutes": 5
+        "check_interval_minutes": 720
     },
     {
         "name": "Ubuy",
@@ -171,7 +171,7 @@ STORES = [
         "city": "UAE",
         "base_url": "https://www.ubuy.ae",
         "supports_store_check": 0,
-        "check_interval_minutes": 10
+        "check_interval_minutes": 720
     },
     {
         "name": "Desertcart",
@@ -179,7 +179,7 @@ STORES = [
         "city": "UAE",
         "base_url": "https://www.desertcart.ae",
         "supports_store_check": 0,
-        "check_interval_minutes": 15
+        "check_interval_minutes": 720
     },
 ]
 
