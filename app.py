@@ -1289,7 +1289,20 @@ function renderProducts(products) {
         const imgUrl = getImageUrl(p.canonical_name);
         const emoji = getEmoji(p.canonical_name);
         const color = getCardColor();
-        const inStock = p.in_stock_count || 0;
+
+        // Build per-store price rows — only show Amazon and Noon (Desertcart/Ubuy disabled for now)
+        const activeStores = ['Amazon', 'Noon'];
+        const storeOrder = {'Amazon': 1, 'Amazon.ae': 1, 'Noon': 2, 'Noon UAE': 2};
+        const storeListings = (p.store_listings || [])
+            .filter(sl => activeStores.some(s => sl.store_name.includes(s)))
+            .sort((a, b) => {
+                const aKey = Object.keys(storeOrder).find(k => a.store_name.includes(k)) || a.store_name;
+                const bKey = Object.keys(storeOrder).find(k => b.store_name.includes(k)) || b.store_name;
+                return (storeOrder[aKey] || 99) - (storeOrder[bKey] || 99);
+            });
+
+        // Count in-stock only from visible stores (not hidden ones like Desertcart)
+        const inStock = storeListings.filter(sl => sl.stock_status === 'IN_STOCK').length;
 
         let statusClass, statusText;
         if (inStock > 0) {
@@ -1302,17 +1315,6 @@ function renderProducts(products) {
             statusClass = 'status-out-of-stock';
             statusText = '❌ OUT OF STOCK';
         }
-
-        // Build per-store price rows — only show Amazon and Noon (Desertcart/Ubuy disabled for now)
-        const activeStores = ['Amazon', 'Noon'];
-        const storeOrder = {'Amazon': 1, 'Amazon.ae': 1, 'Noon': 2, 'Noon UAE': 2};
-        const storeListings = (p.store_listings || [])
-            .filter(sl => activeStores.some(s => sl.store_name.includes(s)))
-            .sort((a, b) => {
-                const aKey = Object.keys(storeOrder).find(k => a.store_name.includes(k)) || a.store_name;
-                const bKey = Object.keys(storeOrder).find(k => b.store_name.includes(k)) || b.store_name;
-                return (storeOrder[aKey] || 99) - (storeOrder[bKey] || 99);
-            });
 
         // Store logo URLs
         const storeLogos = {
