@@ -22,37 +22,31 @@ class UbuyScraper(BaseScraper):
     BASE_URL = "https://www.ubuy.ae"
     SEARCH_URL = "https://www.ubuy.ae/en/search/index/view/product/s"
 
-    # Ubuy internal API endpoints for search
-    SEARCH_API_URLS = [
-        "https://www.ubuy.ae/api/products/search",
-        "https://www.ubuy.ae/en/search/index/view/product/s",
-    ]
+    # Real Ubuy search API (returns HTML with product cards)
+    SEARCH_API_URL = "https://www.ubuy.ae/en/ubcommon/esglobal-v2/search/products"
 
     def check_stock(self, url, product_name=None):
         """
         Check stock for a NeeDoh product on Ubuy.
-        Strategy: Ubuy search API (JSON) → proxy API → proxy HTML → direct HTML.
-        Search pages are JS-rendered so API approach is preferred.
+        Strategy for search URLs: two-step approach —
+          1. Fetch search page via proxy to get session CSRF token
+          2. Call the real search API with that token to get product HTML
+        For product pages: direct/proxy HTML fetch.
         """
         try:
-            # For search URLs, try the API approach first (search pages are JS-rendered)
+            # For search URLs, use the two-step API approach
             if '/search' in url or '/s/' in url:
                 query = None
                 if '?q=' in url:
-                    query = url.split('?q=')[1].split('&')[0]
+                    query = url.split('?q=')[1].split('&')[0].replace('+', ' ')
                 elif '/search/' in url:
-                    query = url.split('/search/')[-1].split('?')[0]
+                    query = url.split('/search/')[-1].split('?')[0].replace('+', ' ')
 
                 if query:
-                    # Try direct API search
-                    api_result = self._api_search(query, url, product_name)
+                    # Two-step approach: get CSRF from page, then call real API
+                    api_result = self._two_step_api_search(query, url, product_name)
                     if api_result and api_result.status != 'UNKNOWN':
                         return api_result
-
-                    # Try proxy-based API search
-                    proxy_result = self._proxy_api_search(query, url, product_name)
-                    if proxy_result and proxy_result.status != 'UNKNOWN':
-                        return proxy_result
 
             # For product pages or as fallback, try fetching HTML
             html = None
@@ -92,154 +86,137 @@ class UbuyScraper(BaseScraper):
                 product_title=product_name
             )
 
-    def _api_search(self, query, original_url, product_name):
-        """Try Ubuy's internal search API (returns JSON, bypasses JS rendering)."""
-        search_term = query.replace('+', ' ')
+    def _two_step_api_search(self, query, original_url, product_name):
+        """Two-step Ubuy search: fetch page for CSRF token, then call real API.
+        Ubuy search pages are 100% JS-rendered, but the actual API returns
+        server-rendered HTML with product cards when given a valid CSRF token.
+        """
+        import base64
 
-        for api_base in self.SEARCH_API_URLS:
-            try:
-                api_url = f"{api_base}?q={query}&pageSize=20&country=ae&language=en"
+        try:
+            # Step 1: Fetch the search page via proxy to get session CSRF token
+            search_page_url = f"https://www.ubuy.ae/en/search?q={query.replace(' ', '+')}"
+            page_html = None
 
-                response = self.session.get(api_url, timeout=15, headers={
-                    'Accept': 'application/json, text/html, */*',
-                    'Referer': f'https://www.ubuy.ae/en/search?q={query}',
-                    'X-Requested-With': 'XMLHttpRequest',
-                })
+            proxy_resp = self.proxy_get(search_page_url, timeout=25)
+            if proxy_resp and proxy_resp.status_code == 200 and len(proxy_resp.text) > 5000:
+                page_html = proxy_resp.text
 
-                if response.status_code != 200:
-                    continue
+            if not page_html:
+                page_html = self.fetch_page(search_page_url, timeout=20)
 
-                # Try to parse as JSON
-                try:
-                    data = response.json()
-                except Exception:
-                    continue
+            if not page_html or len(page_html) < 5000:
+                return None
 
-                products = data.get('products', data.get('items', data.get('results', [])))
-                if isinstance(data, list):
-                    products = data
+            # Extract CSRF token from page
+            csrf_match = re.findall(r'csrftoken_search\s*=\s*["\']([^"\']+)["\']', page_html)
+            csrf = csrf_match[0] if csrf_match else ""
+            if not csrf:
+                return None
 
-                if not products:
-                    continue
+            # Extract store variable
+            store_match = re.findall(r'(?:var|let)\s+ubuy_store\s*=\s*["\']([^"\']+)["\']', page_html)
+            store = store_match[0] if store_match else "us"
 
-                for item in products[:10]:
-                    title = item.get('title', '') or item.get('name', '') or item.get('productTitle', '')
-                    if not self._is_relevant(title, product_name):
-                        continue
+            # Step 2: Build and call the real search API
+            req_data = {
+                "q": query,
+                "ctx": query,
+                "page": "1",
+                "brand": "",
+                "ufulfilled": "",
+                "price_range": "",
+                "sort_by": "",
+                "lang": "",
+                "dc": "",
+                "search_type": "",
+                "skus": "",
+                "store": store,
+                "csrf_token": csrf,
+                "is_video": ""
+            }
+            req_b64 = base64.b64encode(json.dumps(req_data).encode()).decode()
+            api_url = f"{self.SEARCH_API_URL}?ubuy=es1&req={req_b64}"
 
-                    price = item.get('price') or item.get('sale_price') or item.get('salePrice')
-                    if isinstance(price, str):
-                        price = self.parse_price(price)
-                    elif price:
-                        price = float(price)
+            # Call API via proxy (with proper headers)
+            api_resp = self.proxy_get(api_url, headers={
+                'Accept': 'text/html, */*',
+                'Referer': search_page_url,
+                'X-Requested-With': 'XMLHttpRequest',
+            }, timeout=25)
 
-                    # Convert currencies
-                    currency = (item.get('currency', '') or '').upper()
-                    if currency == 'KWD' and price:
-                        price = round(price * KWD_TO_AED, 2)
-                    elif currency == 'USD' and price:
-                        price = round(price * USD_TO_AED, 2)
+            if not api_resp or api_resp.status_code != 200 or len(api_resp.text) < 100:
+                return None
 
-                    in_stock = not item.get('out_of_stock', False)
-                    product_url = item.get('url', '') or item.get('productUrl', '')
-                    if product_url and not product_url.startswith('http'):
-                        product_url = f"{self.BASE_URL}{product_url}"
+            api_html = api_resp.text
 
-                    return ScrapingResult(
-                        status='IN_STOCK' if in_stock and price else 'OUT_OF_STOCK',
-                        price=price,
-                        currency='AED',
-                        seller='Ubuy',
-                        product_title=title,
-                        url=product_url or original_url,
-                        raw_text=f'Ubuy API: {title}'
-                    )
+            # Parse the product cards from API response HTML
+            return self._parse_api_html(api_html, original_url, product_name, query)
 
-                # Had results but none matched
-                return ScrapingResult(
-                    status='OUT_OF_STOCK',
-                    url=original_url,
-                    product_title=product_name,
-                    raw_text=f'No matching NeeDoh "{search_term}" on Ubuy API'
-                )
+        except Exception as e:
+            print(f"  Ubuy two-step API failed: {e}")
+            return None
 
-            except Exception:
+    def _parse_api_html(self, api_html, original_url, product_name, query):
+        """Parse the HTML response from Ubuy's internal search API.
+        The API returns server-rendered product card HTML.
+        """
+        soup = BeautifulSoup(api_html, 'html.parser')
+
+        # Find product titles
+        title_elems = soup.find_all(['h3', 'a'], class_=re.compile(r'product-title', re.I))
+        if not title_elems:
+            title_elems = soup.find_all('h3')
+
+        # Also find price elements
+        price_elems = soup.find_all(['span', 'div', 'h3', 'p'], class_=re.compile(r'price|cost', re.I))
+
+        # Find all listing-product containers for structured parsing
+        product_divs = soup.find_all('div', class_=re.compile(r'listing-product', re.I))
+
+        for div in product_divs[:15]:
+            div_text = div.get_text(' ', strip=True)
+
+            # Check relevance
+            if not self._is_relevant(div_text, product_name):
                 continue
 
-        return None  # All API attempts failed
+            # Extract title
+            title_el = div.find(['h3', 'a'], class_=re.compile(r'product-title', re.I))
+            if not title_el:
+                title_el = div.find('h3')
+            title = title_el.get_text(strip=True) if title_el else product_name
 
-    def _proxy_api_search(self, query, original_url, product_name):
-        """Try Ubuy search API through the Cloudflare Worker proxy."""
-        search_term = query.replace('+', ' ')
+            # Extract price
+            price = self._extract_price(div)
 
-        for api_base in self.SEARCH_API_URLS:
-            try:
-                api_url = f"{api_base}?q={query}&pageSize=20&country=ae&language=en"
+            # Extract product URL
+            link = div.find('a', href=True)
+            product_url = link['href'] if link else original_url
+            if product_url and not product_url.startswith('http'):
+                product_url = f"{self.BASE_URL}{product_url}"
 
-                response = self.proxy_get(api_url, headers={
-                    'Accept': 'application/json, text/html, */*',
-                    'Referer': f'https://www.ubuy.ae/en/search?q={query}',
-                    'X-Requested-With': 'XMLHttpRequest',
-                }, timeout=20)
+            # Check for out of stock indicators
+            div_lower = div_text.lower()
+            out_of_stock = 'out of stock' in div_lower or 'unavailable' in div_lower
 
-                if not response or response.status_code != 200:
-                    continue
+            return ScrapingResult(
+                status='OUT_OF_STOCK' if out_of_stock else ('IN_STOCK' if price else 'UNKNOWN'),
+                price=price,
+                currency='AED',
+                seller='Ubuy',
+                product_title=title,
+                url=product_url,
+                raw_text=f'Ubuy API: {div_text[:300]}'
+            )
 
-                try:
-                    data = response.json()
-                except Exception:
-                    continue
-
-                products = data.get('products', data.get('items', data.get('results', [])))
-                if isinstance(data, list):
-                    products = data
-
-                if not products:
-                    continue
-
-                for item in products[:10]:
-                    title = item.get('title', '') or item.get('name', '') or item.get('productTitle', '')
-                    if not self._is_relevant(title, product_name):
-                        continue
-
-                    price = item.get('price') or item.get('sale_price') or item.get('salePrice')
-                    if isinstance(price, str):
-                        price = self.parse_price(price)
-                    elif price:
-                        price = float(price)
-
-                    currency = (item.get('currency', '') or '').upper()
-                    if currency == 'KWD' and price:
-                        price = round(price * KWD_TO_AED, 2)
-                    elif currency == 'USD' and price:
-                        price = round(price * USD_TO_AED, 2)
-
-                    in_stock = not item.get('out_of_stock', False)
-                    product_url = item.get('url', '') or item.get('productUrl', '')
-                    if product_url and not product_url.startswith('http'):
-                        product_url = f"{self.BASE_URL}{product_url}"
-
-                    return ScrapingResult(
-                        status='IN_STOCK' if in_stock and price else 'OUT_OF_STOCK',
-                        price=price,
-                        currency='AED',
-                        seller='Ubuy',
-                        product_title=title,
-                        url=product_url or original_url,
-                        raw_text=f'Ubuy proxy API: {title}'
-                    )
-
-                return ScrapingResult(
-                    status='OUT_OF_STOCK',
-                    url=original_url,
-                    product_title=product_name,
-                    raw_text=f'No matching NeeDoh "{search_term}" on Ubuy proxy API'
-                )
-
-            except Exception:
-                continue
-
-        return None
+        # Had API response but no matching NeeDoh product
+        return ScrapingResult(
+            status='OUT_OF_STOCK',
+            url=original_url,
+            product_title=product_name,
+            raw_text=f'No matching NeeDoh "{query}" on Ubuy'
+        )
 
     def _parse_search_page(self, soup, html, url, product_name):
         """Parse Ubuy search results page."""

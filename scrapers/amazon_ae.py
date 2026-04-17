@@ -13,13 +13,23 @@ class AmazonAEScraper(BaseScraper):
     STORE_NAME = "Amazon.ae"
 
     def check_stock(self, url, product_name=None):
-        """Check stock status on Amazon.ae."""
+        """Check stock status on Amazon.ae.
+        Strategy: direct fetch → proxy fetch (bypasses datacenter IP blocks).
+        """
         start = time.time()
+
+        # Try direct fetch first
         html = self.fetch_page(url)
+
+        # If direct fails, try through Cloudflare Worker proxy
+        if not html:
+            proxy_resp = self.proxy_get(url, timeout=20)
+            if proxy_resp and proxy_resp.status_code == 200 and len(proxy_resp.text) > 1000:
+                html = proxy_resp.text
 
         if not html:
             return ScrapingResult(
-                status='UNKNOWN', error='Failed to fetch page', url=url)
+                status='UNKNOWN', error='Failed to fetch page (direct + proxy)', url=url)
 
         soup = BeautifulSoup(html, 'lxml')
         duration = int((time.time() - start) * 1000)

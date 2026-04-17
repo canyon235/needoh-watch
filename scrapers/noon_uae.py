@@ -77,10 +77,10 @@ class NoonScraper(BaseScraper):
             if result and result.status != 'UNKNOWN':
                 return result
 
-            # All methods failed
+            # All methods failed — Noon blocks datacenter IPs and CF Worker IPs
             return ScrapingResult(
                 status='UNKNOWN',
-                error='Noon not reachable from any method (API+proxy+HTML all failed)',
+                error='Noon blocks server access (datacenter + proxy IPs blocked). Requires residential IP.',
                 url=url
             )
 
