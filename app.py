@@ -297,44 +297,70 @@ def api_email_subscribe():
     })
 
 
-@app.route('/api/whatsapp-subscribe', methods=['POST'])
-def api_whatsapp_subscribe():
-    """Subscribe WhatsApp number to product alerts."""
+@app.route('/api/email-subscribe', methods=['POST'])
+def api_email_subscribe():
+    """Subscribe email to product alerts."""
     data = request.json or {}
-    phone = data.get('phone', '').strip()
+    email = data.get('email', '').strip().lower()
     product_id = data.get('product_id')
 
-    if not phone:
-        return jsonify({'error': 'WhatsApp number is required'}), 400
+    if not email or '@' not in email:
+        return jsonify({'error': 'Valid email address is required'}), 400
 
     if not product_id:
         return jsonify({'error': 'Please select a specific product'}), 400
 
-    # Normalize phone number
-    phone = phone.replace(' ', '').replace('-', '')
-    if not phone.startswith('+'):
-        phone = '+' + phone
-
-    user_id = f"whatsapp:+{phone.lstrip('+')}"
-    whatsapp_number = f"whatsapp:{phone}"
+    user_id = email  # Use email directly as user_id — EmailChannel detects '@'
 
     # Subscribe to specific product
     add_subscription(
         user_id=user_id,
         product_id=int(product_id),
         max_price=None,
-        notify_email=None,
-        notify_whatsapp=whatsapp_number,
-        user_name=whatsapp_number,
+        notify_email=email,
+        notify_whatsapp=None,
+        user_name=email,
     )
-    subscribed = 1
 
     return jsonify({
         'success': True,
-        'phone': phone,
-        'subscribed_count': subscribed,
-        'message': f'Subscribed {phone} to WhatsApp alerts!'
+        'email': email,
+        'message': f'Subscribed {email} to email alerts!'
     })
+
+
+@app.route('/api/test-email', methods=['POST'])
+def api_test_email():
+    """Send a test email to verify email notifications work."""
+    data = request.json or {}
+    email = data.get('email', '').strip().lower()
+
+    if not email or '@' not in email:
+        return jsonify({'error': 'Valid email address is required'}), 400
+
+    from notifications.notifier import EmailChannel
+    channel = EmailChannel()
+
+    if not channel.sender or not channel.password:
+        return jsonify({
+            'error': 'Email not configured on server. Set EMAIL_ENABLED, EMAIL_SENDER, EMAIL_PASSWORD env vars.'
+        }), 500
+
+    success = channel.send(
+        email,
+        "This is a test notification from NeeDoh Watch UAE!\n\n"
+        "If you received this email, notifications are working correctly.\n\n"
+        "You will receive alerts when:\n"
+        "• A product you're tracking comes back in stock\n"
+        "• A price drops significantly\n"
+        "• Someone spots a product at a store near you",
+        subject="✅ NeeDoh Watch — Test Notification"
+    )
+
+    if success:
+        return jsonify({'success': True, 'message': f'Test email sent to {email}!'})
+    else:
+        return jsonify({'error': 'Failed to send email. Check server logs.'}), 500
 
 
 # ─── Background checker ───
@@ -648,7 +674,7 @@ DASHBOARD_HTML = r"""
         .notify-inline {
             margin-top: auto;
             padding: 8px;
-            background: rgba(37, 211, 102, 0.06);
+            background: rgba(102, 126, 234, 0.06);
             border-radius: 8px;
             text-align: center;
         }
@@ -664,14 +690,14 @@ DASHBOARD_HTML = r"""
         .notify-inline-row input {
             flex: 1;
             padding: 6px 8px;
-            border: 1.5px solid #25D366;
+            border: 1.5px solid #667eea;
             border-radius: 6px;
             font-size: 12px;
             min-width: 0;
         }
         .notify-inline-row button {
             padding: 6px 10px;
-            background: linear-gradient(135deg,#25D366,#128C7E);
+            background: linear-gradient(135deg,#667eea,#764ba2);
             color: white;
             border: none;
             border-radius: 6px;
@@ -1366,12 +1392,12 @@ function renderProducts(products) {
         // WhatsApp notify inline
         const notifyHtml = `
             <div class="notify-inline">
-                <p>📱 WhatsApp alert when back in stock</p>
+                <p>📧 Email alert when back in stock</p>
                 <div class="notify-inline-row">
-                    <input type="tel" id="notifyPhone_${p.id}" placeholder="+971 50 123 4567">
+                    <input type="email" id="notifyEmail_${p.id}" placeholder="your@email.com">
                     <button onclick="event.stopPropagation(); notifyProduct(${p.id})">Notify</button>
                 </div>
-                <div id="notifyConf_${p.id}" style="font-size:11px; margin-top:4px; color:#25D366;"></div>
+                <div id="notifyConf_${p.id}" style="font-size:11px; margin-top:4px; color:#667eea;"></div>
             </div>`;
 
         return `<div class="product-card ${color}">
@@ -1429,30 +1455,30 @@ async function submitSighting() {
     }
 }
 
-// WhatsApp subscription — subscribe to a specific product
+// Email subscription — subscribe to a specific product
 async function notifyProduct(productId) {
-    const phone = document.getElementById('notifyPhone_' + productId).value.trim();
+    const email = document.getElementById('notifyEmail_' + productId).value.trim();
 
-    if (!phone) {
-        toast('Please enter your WhatsApp number!');
+    if (!email) {
+        toast('Please enter your email address!');
         return;
     }
 
-    if (phone.length < 8) {
-        toast('Please enter a valid phone number (e.g. +971501234567)');
+    if (!email.includes('@') || !email.includes('.')) {
+        toast('Please enter a valid email address');
         return;
     }
 
-    const data = await api('/api/whatsapp-subscribe', {
+    const data = await api('/api/email-subscribe', {
         method: 'POST',
-        body: JSON.stringify({ phone, product_id: productId })
+        body: JSON.stringify({ email, product_id: productId })
     });
 
     if (data.success) {
-        toast('📱 You will be notified on WhatsApp!');
+        toast('📧 You will be notified by email!');
         const conf = document.getElementById('notifyConf_' + productId);
         if (conf) {
-            conf.textContent = `✅ ${data.phone} will be notified!`;
+            conf.textContent = `✅ ${data.email} will be notified!`;
         }
     } else {
         toast('Error: ' + (data.error || 'Try again'));
