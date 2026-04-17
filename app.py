@@ -1642,10 +1642,6 @@ function renderProducts(products) {
         const inStock = storeListings.filter(sl => sl.stock_status === 'IN_STOCK').length;
 
         // Determine overall status
-        // "OUT OF STOCK" = product was previously listed with a price (it existed, now gone)
-        // "NOT AVAILABLE" = product was never found on these stores
-        const hasAnyPrice = storeListings.some(sl => sl.last_price && sl.last_price > 0);
-
         let statusClass, statusText;
         if (inStock > 0) {
             statusClass = 'status-available';
@@ -1653,12 +1649,7 @@ function renderProducts(products) {
         } else if (!p.last_check) {
             statusClass = 'status-checking';
             statusText = '🔍 PENDING CHECK';
-        } else if (hasAnyPrice) {
-            // Was listed with a price before — genuinely went out of stock
-            statusClass = 'status-out-of-stock';
-            statusText = '⚠️ OUT OF STOCK';
         } else {
-            // Never had a price — not found on these stores
             statusClass = 'status-not-available';
             statusText = '❌ NOT AVAILABLE';
         }
