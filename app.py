@@ -682,11 +682,14 @@ DASHBOARD_HTML = r"""
         }
 
         .product-name {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--dark-text);
             margin-bottom: 12px;
             text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .product-status {
@@ -1373,8 +1376,7 @@ function renderProducts(products) {
 
         return `<div class="product-card ${color}">
             ${imageHtml}
-            <div class="product-name">${p.canonical_name}</div>
-            ${p.variant ? `<div style="font-size: 12px; color: var(--light-text); margin-bottom: 8px;">${p.variant}</div>` : ''}
+            <div class="product-name">${p.canonical_name}${p.variant ? ' ' + p.variant : ''}</div>
             <div class="product-status ${statusClass}">${statusText}</div>
             ${storePricesHtml}
             ${notifyHtml}
