@@ -297,6 +297,60 @@ def api_email_subscribe():
     })
 
 
+@app.route('/api/whatsapp-subscribe', methods=['POST'])
+def api_whatsapp_subscribe():
+    """Subscribe WhatsApp number to product alerts."""
+    data = request.json or {}
+    phone = data.get('phone', '').strip()
+    product_id = data.get('product_id')  # optional — subscribe to specific product
+    subscribe_all = data.get('subscribe_all', False)
+
+    if not phone:
+        return jsonify({'error': 'WhatsApp number is required'}), 400
+
+    # Normalize phone number
+    phone = phone.replace(' ', '').replace('-', '')
+    if not phone.startswith('+'):
+        phone = '+' + phone
+
+    user_id = f"whatsapp:+{phone.lstrip('+')}"
+    whatsapp_number = f"whatsapp:{phone}"
+
+    subscribed = 0
+
+    if product_id:
+        # Subscribe to specific product
+        add_subscription(
+            user_id=user_id,
+            product_id=int(product_id),
+            max_price=None,
+            notify_email=None,
+            notify_whatsapp=whatsapp_number,
+            user_name=whatsapp_number,
+        )
+        subscribed = 1
+    elif subscribe_all:
+        # Subscribe to ALL products
+        products = get_all_products()
+        for product in products:
+            add_subscription(
+                user_id=user_id,
+                product_id=product['id'],
+                max_price=None,
+                notify_email=None,
+                notify_whatsapp=whatsapp_number,
+                user_name=whatsapp_number,
+            )
+            subscribed += 1
+
+    return jsonify({
+        'success': True,
+        'phone': phone,
+        'subscribed_count': subscribed,
+        'message': f'Subscribed {phone} to WhatsApp alerts!'
+    })
+
+
 # ─── Background checker ───
 
 def background_checker(interval=900):
@@ -689,6 +743,16 @@ DASHBOARD_HTML = r"""
             background: linear-gradient(135deg, rgba(233, 30, 99, 0.15) 0%, rgba(244, 143, 177, 0.1) 100%);
         }
 
+        .store-link.desertcart {
+            background: linear-gradient(135deg, rgba(0, 150, 136, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+            border-color: rgba(0, 150, 136, 0.2);
+            color: #00695C;
+        }
+
+        .store-link.desertcart:hover {
+            background: linear-gradient(135deg, rgba(0, 150, 136, 0.15) 0%, rgba(76, 175, 80, 0.1) 100%);
+        }
+
         .store-link.disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -696,6 +760,16 @@ DASHBOARD_HTML = r"""
 
         .store-link.disabled:hover {
             transform: none;
+        }
+
+        .buy-icon-link {
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .buy-icon-link:hover {
+            transform: scale(1.3);
         }
 
         /* Action Buttons */
@@ -1007,19 +1081,23 @@ DASHBOARD_HTML = r"""
     </div>
 
     <div class="container">
-        <!-- Email Alert Section -->
+        <!-- WhatsApp Alert Section -->
         <div class="email-alert-section">
-            <h2>📬 Get Notified! 🎉</h2>
+            <h2>📱 Get WhatsApp Alerts! 🎉</h2>
+            <p style="font-size:13px; color:var(--light-text); margin-bottom:12px;">
+                Enter your WhatsApp number to get notified when toys are back in stock!
+            </p>
             <div class="email-input-group">
                 <input
-                    type="email"
-                    id="emailInput"
-                    placeholder="Enter your email for alerts..."
-                    aria-label="Email for notifications"
+                    type="tel"
+                    id="whatsappInput"
+                    placeholder="+971 50 123 4567"
+                    aria-label="WhatsApp number for notifications"
+                    style="flex:1"
                 >
-                <button onclick="subscribeEmail()">Notify Me!</button>
+                <button onclick="subscribeWhatsApp()">🔔 Notify Me!</button>
             </div>
-            <div class="email-confirmation" id="emailConfirmation"></div>
+            <div class="email-confirmation" id="whatsappConfirmation"></div>
         </div>
 
         <!-- Product Grid -->
@@ -1084,7 +1162,7 @@ const PRODUCT_IMAGES = {
     'Classic':        'https://myneedoh.com/wp-content/uploads/2024/10/nd1.jpg',
     'Nice Cube':      'https://myneedoh.com/wp-content/uploads/2025/08/717FM41-pPL._AC_SL1500_.jpg',
     'Gummy Bear':     'https://myneedoh.com/wp-content/uploads/2025/08/714i4fiAGsL._AC_SL1500_.jpg',
-    'Cool Cats':      'https://target.scene7.com/is/image/Target/GUEST_56395569-b85d-47c3-ae68-204dab47e560?wid=800&hei=800&fmt=pjpeg',
+    'Cool Cats':      'https://myneedoh.com/wp-content/uploads/2025/12/41.jpg',
     'Gumdrop':        'https://myneedoh.com/wp-content/uploads/2025/08/51WofDcMjtL._AC_SL1080_.jpg',
     'Dream Drop':     'https://myneedoh.com/wp-content/uploads/2025/08/71TMLfwRgxL._AC_SL1500_.jpg',
     'Mac N Squeeze':  'https://myneedoh.com/wp-content/uploads/2024/10/nd10.jpg',
@@ -1104,7 +1182,7 @@ const PRODUCT_IMAGES = {
     'Dohjees':        'https://myneedoh.com/wp-content/uploads/2025/12/81.jpg',
     'Panic Pete':     'https://childsplaytoyssf.com/cdn/shop/products/PPST-Panic-Pete-Squeeze-web-1536x1536_1250x1250.jpg?v=1614039497',
     'Chickadeedoos':  'https://cdn11.bigcommerce.com/s-65gzldhg/images/stencil/1280x1280/products/8565/11515/chickadeedoos_blue_CDDND24__99485.1705010497.jpg?c=2',
-    'Jelly Squish':   'https://target.scene7.com/is/image/Target/GUEST_869ae457-32a8-4708-b6dc-cf45ede73fe7?wid=800&hei=800&fmt=pjpeg',
+    'Jelly Squish':   'https://myneedoh.com/wp-content/uploads/2025/12/61.jpg',
     'Super NeeDoh':   'https://myneedoh.com/wp-content/uploads/2024/10/nd4.jpg',
     'Teenie':         'https://myneedoh.com/wp-content/uploads/2024/10/nd9.jpg',
 };
@@ -1224,10 +1302,15 @@ function renderProducts(products) {
                 if (sl.stock_status === 'IN_STOCK' && sl.delivery_estimate) {
                     deliveryShort = '📦 ' + sl.delivery_estimate;
                 }
+                // Buy icon — only show when in stock with a valid URL
+                let buyIcon = '';
+                if (sl.stock_status === 'IN_STOCK' && sl.url) {
+                    buyIcon = `<a href="${sl.url}" target="_blank" rel="noopener" class="buy-icon-link" onclick="event.stopPropagation()" title="Buy from ${storeShort}">🛒</a>`;
+                }
                 return `<div class="store-price-row">
                     <span class="store-label"><span class="store-status-dot ${dotClass}"></span>${storeShort}</span>
                     <span class="delivery-info">${deliveryShort}</span>
-                    <span class="store-price-val">${price}</span>
+                    <span class="store-price-val">${price} ${buyIcon}</span>
                 </div>`;
             }).join('');
             storePricesHtml = `<div class="store-prices">${rows}</div>`;
@@ -1244,10 +1327,6 @@ function renderProducts(products) {
             ${p.variant ? `<div style="font-size: 12px; color: var(--light-text); margin-bottom: 8px;">${p.variant}</div>` : ''}
             <div class="product-status ${statusClass}">${statusText}</div>
             ${storePricesHtml}
-            <div class="product-actions">
-                <button class="btn-small report" onclick="event.stopPropagation(); showSightingModal('${p.canonical_name}')">👀 Spotted</button>
-                <button class="btn-small" onclick="event.stopPropagation(); showProductDetail(${p.id})">🔍 Details</button>
-            </div>
         </div>`;
     }).join('');
 }
@@ -1322,12 +1401,28 @@ async function showProductDetail(id) {
         ? `<img src="${imgUrl}" alt="${name}" style="width:120px; height:120px; object-fit:contain; border-radius:12px; background:#f8f4ff; padding:4px; margin-bottom:12px;">`
         : `<div style="font-size:48px; margin-bottom:12px;">${emoji}</div>`;
 
+    // Notify Me button for out-of-stock products
+    const notifyHtml = `
+        <div style="margin-top:16px; padding:12px; background:rgba(192,132,252,0.08); border-radius:12px; text-align:center;">
+            <p style="font-size:13px; color:var(--light-text); margin-bottom:8px;">Get a WhatsApp alert when this toy is back in stock!</p>
+            <div style="display:flex; gap:8px; justify-content:center;">
+                <input type="tel" id="notifyPhone_${p.id}" placeholder="+971 50 123 4567"
+                    style="padding:8px 12px; border:2px solid var(--purple); border-radius:8px; font-size:14px; width:180px;">
+                <button onclick="notifyProduct(${p.id})"
+                    style="padding:8px 16px; background:linear-gradient(135deg,#25D366,#128C7E); color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:14px;">
+                    📱 Notify Me
+                </button>
+            </div>
+            <div id="notifyConf_${p.id}" style="font-size:12px; margin-top:6px; color:#25D366;"></div>
+        </div>`;
+
     document.getElementById('modalContent').innerHTML = `
         ${modalImgHtml}
         <h2>${name}</h2>
         <h3>🏬 Where to Buy</h3>
         ${storesHtml}
         ${recentNewsHtml}
+        ${notifyHtml}
     `;
 }
 
@@ -1380,32 +1475,62 @@ async function submitSighting() {
     }
 }
 
-// Email subscription
-async function subscribeEmail() {
-    const email = document.getElementById('emailInput').value.trim();
+// WhatsApp subscription — subscribe to ALL products
+async function subscribeWhatsApp() {
+    const phone = document.getElementById('whatsappInput').value.trim();
 
-    if (!email) {
-        toast('Please enter an email!');
+    if (!phone) {
+        toast('Please enter your WhatsApp number!');
         return;
     }
 
-    if (!email.includes('@')) {
-        toast('Please enter a valid email!');
+    if (phone.length < 8) {
+        toast('Please enter a valid phone number (e.g. +971501234567)');
         return;
     }
 
-    const data = await api('/api/email-subscribe', {
+    const data = await api('/api/whatsapp-subscribe', {
         method: 'POST',
-        body: JSON.stringify({ email, products: [] })
+        body: JSON.stringify({ phone, subscribe_all: true })
     });
 
     if (data.success) {
-        toast('✨ Check your email for confirmation!');
-        document.getElementById('emailInput').value = '';
-        const conf = document.getElementById('emailConfirmation');
-        conf.textContent = `✅ ${email} subscribed! You'll get alerts for all toys.`;
+        toast('📱 WhatsApp alerts activated!');
+        document.getElementById('whatsappInput').value = '';
+        const conf = document.getElementById('whatsappConfirmation');
+        conf.textContent = `✅ ${data.phone} subscribed! You'll get WhatsApp alerts for all toys.`;
         conf.classList.add('show');
-        setTimeout(() => conf.classList.remove('show'), 4000);
+        setTimeout(() => conf.classList.remove('show'), 5000);
+    } else {
+        toast('Error: ' + (data.error || 'Try again'));
+    }
+}
+
+// WhatsApp subscription — subscribe to a specific product
+async function notifyProduct(productId) {
+    const phone = document.getElementById('notifyPhone_' + productId).value.trim();
+
+    if (!phone) {
+        toast('Please enter your WhatsApp number!');
+        return;
+    }
+
+    if (phone.length < 8) {
+        toast('Please enter a valid phone number (e.g. +971501234567)');
+        return;
+    }
+
+    const data = await api('/api/whatsapp-subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ phone, product_id: productId })
+    });
+
+    if (data.success) {
+        toast('📱 You will be notified on WhatsApp!');
+        const conf = document.getElementById('notifyConf_' + productId);
+        if (conf) {
+            conf.textContent = `✅ ${data.phone} will be notified!`;
+        }
     } else {
         toast('Error: ' + (data.error || 'Try again'));
     }
@@ -1443,18 +1568,18 @@ if __name__ == '__main__':
         # Always ensure seed data exists
         seed_all()
 
-    # Database migration: ensure we have the correct 26 products × 3 stores = 78 listings
+    # Database migration: add Desertcart store and listings if missing
     try:
         with get_db() as conn:
             product_count = conn.execute("SELECT COUNT(*) as cnt FROM products").fetchone()['cnt']
             listing_count = conn.execute("SELECT COUNT(*) as cnt FROM listings").fetchone()['cnt']
             store_count = conn.execute("SELECT COUNT(*) as cnt FROM stores").fetchone()['cnt']
 
-            # If product/store/listing counts don't match expected (26 products, 3 stores, 78 listings),
-            # wipe and re-seed to ensure clean state
-            if product_count != 26 or store_count != 3 or listing_count != 78:
-                print(f"  ⚠ DB has {product_count} products, {store_count} stores, {listing_count} listings")
-                print(f"    Expected: 26 products, 3 stores, 78 listings — wiping and re-seeding...")
+            print(f"  DB: {product_count} products, {store_count} stores, {listing_count} listings")
+
+            # If products are missing, wipe and re-seed
+            if product_count != 26:
+                print(f"  ⚠ Expected 26 products — wiping and re-seeding...")
                 conn.execute("DELETE FROM check_log")
                 conn.execute("DELETE FROM alerts")
                 conn.execute("DELETE FROM sightings")
@@ -1462,12 +1587,37 @@ if __name__ == '__main__':
                 conn.execute("DELETE FROM listings")
                 conn.execute("DELETE FROM stores")
                 conn.execute("DELETE FROM products")
-                print("  ✓ Cleared old data")
-                # Re-seed will happen below
                 seed_all()
-                print(f"  ✓ Re-seeded with 26 products × 3 stores = 78 listings")
+                print(f"  ✓ Re-seeded")
+
+            # Migration: add Desertcart store if missing
+            desertcart = conn.execute("SELECT id FROM stores WHERE name = 'Desertcart'").fetchone()
+            if not desertcart:
+                print("  Adding Desertcart store...")
+                cursor = conn.execute(
+                    """INSERT INTO stores (name, type, city, base_url, supports_store_check, check_interval_minutes)
+                       VALUES ('Desertcart', 'online', 'UAE', 'https://www.desertcart.ae', 0, 15)"""
+                )
+                dc_store_id = cursor.lastrowid
+
+                # Add Desertcart listings for all products
+                products = conn.execute("SELECT id, canonical_name FROM products ORDER BY id").fetchall()
+                from data.seed import SEARCH_TERMS
+                product_list = list(products)
+                for idx, product in enumerate(product_list):
+                    term = SEARCH_TERMS.get(idx, 'needoh')
+                    url = f"https://www.desertcart.ae/search?query={term}"
+                    conn.execute(
+                        "INSERT INTO listings (product_id, store_id, url) VALUES (?, ?, ?)",
+                        (product['id'], dc_store_id, url)
+                    )
+                print(f"  ✓ Added Desertcart store + {len(product_list)} listings")
             else:
-                print(f"  ✓ DB OK: {product_count} products, {store_count} stores, {listing_count} listings")
+                print(f"  ✓ Desertcart store already exists")
+
+            final_listings = conn.execute("SELECT COUNT(*) as cnt FROM listings").fetchone()['cnt']
+            final_stores = conn.execute("SELECT COUNT(*) as cnt FROM stores").fetchone()['cnt']
+            print(f"  ✓ DB OK: {product_count} products, {final_stores} stores, {final_listings} listings")
 
             # Add delivery_estimate column if missing (migration)
             try:

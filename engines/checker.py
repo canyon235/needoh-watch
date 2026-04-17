@@ -12,6 +12,7 @@ from data.database import (
 from scrapers.amazon_ae import AmazonAEScraper
 from scrapers.noon_uae import NoonScraper
 from scrapers.ubuy_ae import UbuyScraper
+from scrapers.desertcart_ae import DesertcartScraper
 from engines.normalizer import normalize_result
 from engines.alert_engine import AlertEngine
 from engines.offline_engine import OfflineEngine
@@ -24,6 +25,7 @@ class StockChecker:
             'Amazon.ae': AmazonAEScraper(),
             'Noon': NoonScraper(),
             'Ubuy': UbuyScraper(),
+            'Desertcart': DesertcartScraper(),
         }
         self.alert_engine = AlertEngine(notifier=notifier)
         self.offline_engine = OfflineEngine(alert_engine=self.alert_engine)

@@ -88,6 +88,14 @@ STORES = [
         "supports_store_check": 0,
         "check_interval_minutes": 10
     },
+    {
+        "name": "Desertcart",
+        "type": "online",
+        "city": "UAE",
+        "base_url": "https://www.desertcart.ae",
+        "supports_store_check": 0,
+        "check_interval_minutes": 15
+    },
 ]
 
 # Generate listings: every product on every store
@@ -125,6 +133,7 @@ STORE_URL_TEMPLATES = {
     0: "https://www.amazon.ae/s?k={term}",
     1: "https://www.noon.com/uae-en/search/?q={term}",
     2: "https://www.ubuy.ae/en/search?q={term}",
+    3: "https://www.desertcart.ae/search?query={term}",
 }
 
 def _generate_listings():
