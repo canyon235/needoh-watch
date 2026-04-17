@@ -268,39 +268,6 @@ def api_diagnostics():
 def api_email_subscribe():
     """Subscribe email to product alerts."""
     data = request.json or {}
-    email = data.get('email', '').strip()
-    products = data.get('products', [])
-
-    if not email:
-        return jsonify({'error': 'Email is required'}), 400
-
-    user_id = f"email_{email}"
-
-    # Add subscription for each product
-    for product_query in products:
-        found_products = find_product(product_query)
-        if found_products:
-            product = found_products[0]
-            add_subscription(
-                user_id=user_id,
-                product_id=product['id'],
-                max_price=None,
-                notify_email=email,
-                user_name=email,
-            )
-
-    return jsonify({
-        'success': True,
-        'email': email,
-        'subscribed_count': len(products),
-        'message': f'Successfully subscribed {email} to notifications!'
-    })
-
-
-@app.route('/api/email-subscribe', methods=['POST'])
-def api_email_subscribe():
-    """Subscribe email to product alerts."""
-    data = request.json or {}
     email = data.get('email', '').strip().lower()
     product_id = data.get('product_id')
 
