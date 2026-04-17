@@ -302,11 +302,13 @@ def api_whatsapp_subscribe():
     """Subscribe WhatsApp number to product alerts."""
     data = request.json or {}
     phone = data.get('phone', '').strip()
-    product_id = data.get('product_id')  # optional — subscribe to specific product
-    subscribe_all = data.get('subscribe_all', False)
+    product_id = data.get('product_id')
 
     if not phone:
         return jsonify({'error': 'WhatsApp number is required'}), 400
+
+    if not product_id:
+        return jsonify({'error': 'Please select a specific product'}), 400
 
     # Normalize phone number
     phone = phone.replace(' ', '').replace('-', '')
@@ -316,32 +318,16 @@ def api_whatsapp_subscribe():
     user_id = f"whatsapp:+{phone.lstrip('+')}"
     whatsapp_number = f"whatsapp:{phone}"
 
-    subscribed = 0
-
-    if product_id:
-        # Subscribe to specific product
-        add_subscription(
-            user_id=user_id,
-            product_id=int(product_id),
-            max_price=None,
-            notify_email=None,
-            notify_whatsapp=whatsapp_number,
-            user_name=whatsapp_number,
-        )
-        subscribed = 1
-    elif subscribe_all:
-        # Subscribe to ALL products
-        products = get_all_products()
-        for product in products:
-            add_subscription(
-                user_id=user_id,
-                product_id=product['id'],
-                max_price=None,
-                notify_email=None,
-                notify_whatsapp=whatsapp_number,
-                user_name=whatsapp_number,
-            )
-            subscribed += 1
+    # Subscribe to specific product
+    add_subscription(
+        user_id=user_id,
+        product_id=int(product_id),
+        max_price=None,
+        notify_email=None,
+        notify_whatsapp=whatsapp_number,
+        user_name=whatsapp_number,
+    )
+    subscribed = 1
 
     return jsonify({
         'success': True,
@@ -545,13 +531,13 @@ DASHBOARD_HTML = r"""
             border-radius: 16px;
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            cursor: pointer;
             transition: all 0.3s;
             border: 2px solid transparent;
+            text-align: center;
         }
 
         .product-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
         }
 
@@ -578,6 +564,7 @@ DASHBOARD_HTML = r"""
         .product-emoji {
             font-size: 48px;
             margin-bottom: 12px;
+            text-align: center;
         }
 
         .product-img {
@@ -588,6 +575,9 @@ DASHBOARD_HTML = r"""
             margin-bottom: 12px;
             background: #f8f4ff;
             padding: 4px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .delivery-info {
@@ -612,6 +602,7 @@ DASHBOARD_HTML = r"""
             padding: 4px 8px;
             border-radius: 6px;
             background: rgba(248, 244, 255, 0.5);
+            text-align: left;
         }
 
         .store-price-row .store-label {
@@ -624,17 +615,49 @@ DASHBOARD_HTML = r"""
             color: var(--pink);
         }
 
-        .store-price-row .store-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
+        .store-price-row .store-icon {
+            font-size: 14px;
             margin-right: 4px;
+            display: inline-block;
+            width: 18px;
+            text-align: center;
         }
 
-        .store-price-row .store-status-dot.in-stock { background: #84CC16; }
-        .store-price-row .store-status-dot.out-of-stock { background: #FF6B9D; }
-        .store-price-row .store-status-dot.unknown { background: #C084FC; }
+        .notify-inline {
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(37, 211, 102, 0.06);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .notify-inline p {
+            font-size: 11px;
+            color: var(--light-text);
+            margin: 0 0 6px 0;
+        }
+        .notify-inline-row {
+            display: flex;
+            gap: 4px;
+        }
+        .notify-inline-row input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1.5px solid #25D366;
+            border-radius: 6px;
+            font-size: 12px;
+            min-width: 0;
+        }
+        .notify-inline-row button {
+            padding: 6px 10px;
+            background: linear-gradient(135deg,#25D366,#128C7E);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 11px;
+            white-space: nowrap;
+        }
 
         .product-name {
             font-size: 18px;
@@ -1081,39 +1104,12 @@ DASHBOARD_HTML = r"""
     </div>
 
     <div class="container">
-        <!-- WhatsApp Alert Section -->
-        <div class="email-alert-section">
-            <h2>📱 Get WhatsApp Alerts! 🎉</h2>
-            <p style="font-size:13px; color:var(--light-text); margin-bottom:12px;">
-                Enter your WhatsApp number to get notified when toys are back in stock!
-            </p>
-            <div class="email-input-group">
-                <input
-                    type="tel"
-                    id="whatsappInput"
-                    placeholder="+971 50 123 4567"
-                    aria-label="WhatsApp number for notifications"
-                    style="flex:1"
-                >
-                <button onclick="subscribeWhatsApp()">🔔 Notify Me!</button>
-            </div>
-            <div class="email-confirmation" id="whatsappConfirmation"></div>
-        </div>
-
         <!-- Product Grid -->
         <div class="product-grid" id="productGrid">
             <div style="text-align: center; padding: 40px; grid-column: 1/-1;">
                 <div class="spinner"></div>
                 <p style="margin-top: 16px; color: var(--light-text);">Loading amazing toys...</p>
             </div>
-        </div>
-    </div>
-
-    <!-- Product Detail Modal -->
-    <div class="modal-overlay" id="productModal" onclick="if(event.target.id === 'productModal') closeProductModal()">
-        <div class="modal">
-            <button class="modal-close" onclick="closeProductModal()">&times;</button>
-            <div id="modalContent">Loading...</div>
         </div>
     </div>
 
@@ -1288,15 +1284,29 @@ function renderProducts(products) {
             statusText = '❌ Out of Stock';
         }
 
-        // Build per-store price rows
-        const storeListings = p.store_listings || [];
+        // Build per-store price rows — sort: Amazon, Noon, Desertcart, Ubuy, Virgin, others
+        const storeOrder = {'Amazon': 1, 'Amazon.ae': 1, 'Noon': 2, 'Noon UAE': 2, 'Desertcart': 3, 'Ubuy': 4, 'Virgin': 5, 'Virgin Megastore UAE': 5};
+        const storeListings = (p.store_listings || []).slice().sort((a, b) => {
+            const aKey = Object.keys(storeOrder).find(k => a.store_name.includes(k)) || a.store_name;
+            const bKey = Object.keys(storeOrder).find(k => b.store_name.includes(k)) || b.store_name;
+            return (storeOrder[aKey] || 99) - (storeOrder[bKey] || 99);
+        });
+
+        // Store icons map
+        function storeIcon(name) {
+            if (name.includes('Amazon')) return '🅰️';
+            if (name.includes('Noon')) return '🌙';
+            if (name.includes('Desertcart')) return '🏜️';
+            if (name.includes('Ubuy')) return '🛍️';
+            if (name.includes('Virgin')) return '🔴';
+            return '🏪';
+        }
+
         let storePricesHtml = '';
         if (storeListings.length > 0) {
             const rows = storeListings.map(sl => {
                 const storeShort = sl.store_name.replace(' UAE', '').replace(' Megastore', '');
                 const price = sl.last_price ? `AED ${sl.last_price.toFixed(0)}` : '—';
-                const dotClass = sl.stock_status === 'IN_STOCK' ? 'in-stock'
-                               : sl.stock_status === 'OUT_OF_STOCK' ? 'out-of-stock' : 'unknown';
                 // Use real delivery estimate from scraper (only show when product is in stock)
                 let deliveryShort = '';
                 if (sl.stock_status === 'IN_STOCK' && sl.delivery_estimate) {
@@ -1305,10 +1315,11 @@ function renderProducts(products) {
                 // Buy icon — only show when in stock with a valid URL
                 let buyIcon = '';
                 if (sl.stock_status === 'IN_STOCK' && sl.url) {
-                    buyIcon = `<a href="${sl.url}" target="_blank" rel="noopener" class="buy-icon-link" onclick="event.stopPropagation()" title="Buy from ${storeShort}">🛒</a>`;
+                    buyIcon = `<a href="${sl.url}" target="_blank" rel="noopener" class="buy-icon-link" title="Buy from ${storeShort}">🛒</a>`;
                 }
+                const icon = storeIcon(sl.store_name);
                 return `<div class="store-price-row">
-                    <span class="store-label"><span class="store-status-dot ${dotClass}"></span>${storeShort}</span>
+                    <span class="store-label"><span class="store-icon">${icon}</span>${storeShort}</span>
                     <span class="delivery-info">${deliveryShort}</span>
                     <span class="store-price-val">${price} ${buyIcon}</span>
                 </div>`;
@@ -1316,118 +1327,31 @@ function renderProducts(products) {
             storePricesHtml = `<div class="store-prices">${rows}</div>`;
         }
 
-        // Image with emoji fallback
+        // Image with emoji fallback — centered
         const imageHtml = imgUrl
-            ? `<img class="product-img" src="${imgUrl}" alt="${p.canonical_name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="product-emoji" style="display:none">${emoji}</div>`
+            ? `<div style="text-align:center;"><img class="product-img" src="${imgUrl}" alt="${p.canonical_name}" onerror="this.style.display='none';this.parentElement.nextElementSibling.style.display='block'" style="margin:0 auto;"></div><div class="product-emoji" style="display:none">${emoji}</div>`
             : `<div class="product-emoji">${emoji}</div>`;
 
-        return `<div class="product-card ${color}" onclick="showProductDetail(${p.id})">
+        // WhatsApp notify inline
+        const notifyHtml = `
+            <div class="notify-inline">
+                <p>📱 WhatsApp alert when back in stock</p>
+                <div class="notify-inline-row">
+                    <input type="tel" id="notifyPhone_${p.id}" placeholder="+971 50 123 4567">
+                    <button onclick="event.stopPropagation(); notifyProduct(${p.id})">Notify</button>
+                </div>
+                <div id="notifyConf_${p.id}" style="font-size:11px; margin-top:4px; color:#25D366;"></div>
+            </div>`;
+
+        return `<div class="product-card ${color}">
             ${imageHtml}
             <div class="product-name">${p.canonical_name}</div>
             ${p.variant ? `<div style="font-size: 12px; color: var(--light-text); margin-bottom: 8px;">${p.variant}</div>` : ''}
             <div class="product-status ${statusClass}">${statusText}</div>
             ${storePricesHtml}
+            ${notifyHtml}
         </div>`;
     }).join('');
-}
-
-// Show product detail modal
-async function showProductDetail(id) {
-    const modal = document.getElementById('productModal');
-    modal.classList.add('show');
-    document.getElementById('modalContent').innerHTML = '<div style="text-align:center; padding:40px"><div class="spinner"></div></div>';
-
-    const data = await api(`/api/product/${id}`);
-    if (data.error) {
-        document.getElementById('modalContent').innerHTML = `<p>${data.error}</p>`;
-        return;
-    }
-
-    const p = data.product;
-    const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
-    const imgUrl = getImageUrl(p.canonical_name);
-    const emoji = getEmoji(p.canonical_name);
-
-    let storesHtml = '';
-    if (data.listings && data.listings.length > 0) {
-        storesHtml = data.listings.map(l => {
-            const price = l.last_price ? `AED ${l.last_price.toFixed(0)}` : '—';
-            const status = l.stock_status === 'IN_STOCK' ? '✅ In Stock'
-                         : l.stock_status === 'OUT_OF_STOCK' ? '❌ Out of Stock'
-                         : l.stock_status === 'LOW_STOCK' ? '⚠️ Low Stock' : '⏳ Checking...';
-            // Only show real delivery date when product is in stock and we have data
-            const delivery = (l.stock_status === 'IN_STOCK' && l.delivery_estimate) ? l.delivery_estimate : '';
-            const metaText = delivery ? `${status} · 📦 ${delivery}` : status;
-
-            // Only show Buy Now button when product is actually in stock and we have a real product URL
-            let actionButton = '';
-            if (l.stock_status === 'IN_STOCK' && l.url) {
-                actionButton = `<a href="${l.url}" target="_blank" rel="noopener" class="store-detail-button">Buy Now 🛒</a>`;
-            } else if (l.stock_status === 'IN_STOCK' || l.stock_status === 'LOW_STOCK') {
-                actionButton = `<a href="${l.url}" target="_blank" rel="noopener" class="store-detail-button">View 🔗</a>`;
-            } else {
-                actionButton = '<button class="store-detail-button disabled">Unavailable</button>';
-            }
-
-            return `<div class="store-detail-row">
-                <div class="store-detail-info">
-                    <div class="store-detail-name">${l.store_name}</div>
-                    <div class="store-detail-meta">${metaText}</div>
-                </div>
-                <div class="store-detail-price">${price}</div>
-                ${actionButton}
-            </div>`;
-        }).join('');
-    } else {
-        storesHtml = '<div style="color: var(--light-text); padding: 20px; text-align: center;">No listings found yet.</div>';
-    }
-
-    let recentNewsHtml = '';
-    if (data.sightings && data.sightings.length > 0) {
-        recentNewsHtml = '<h3>📰 Recent Sightings</h3>' +
-            data.sightings.slice(0, 3).map(s => {
-                const loc = s.mall_name || s.store_full_name || 'Unknown location';
-                const time = s.reported_at ? new Date(s.reported_at + 'Z').toLocaleDateString() : '';
-                return `<div class="store-detail-row" style="background: rgba(255, 107, 157, 0.05); flex-direction: column; text-align: left;">
-                    <div class="store-detail-info">
-                        <div class="store-detail-name">📍 ${loc}</div>
-                        <div class="store-detail-meta">${time}</div>
-                    </div>
-                </div>`;
-            }).join('');
-    }
-
-    const modalImgHtml = imgUrl
-        ? `<img src="${imgUrl}" alt="${name}" style="width:120px; height:120px; object-fit:contain; border-radius:12px; background:#f8f4ff; padding:4px; margin-bottom:12px;">`
-        : `<div style="font-size:48px; margin-bottom:12px;">${emoji}</div>`;
-
-    // Notify Me button for out-of-stock products
-    const notifyHtml = `
-        <div style="margin-top:16px; padding:12px; background:rgba(192,132,252,0.08); border-radius:12px; text-align:center;">
-            <p style="font-size:13px; color:var(--light-text); margin-bottom:8px;">Get a WhatsApp alert when this toy is back in stock!</p>
-            <div style="display:flex; gap:8px; justify-content:center;">
-                <input type="tel" id="notifyPhone_${p.id}" placeholder="+971 50 123 4567"
-                    style="padding:8px 12px; border:2px solid var(--purple); border-radius:8px; font-size:14px; width:180px;">
-                <button onclick="notifyProduct(${p.id})"
-                    style="padding:8px 16px; background:linear-gradient(135deg,#25D366,#128C7E); color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:14px;">
-                    📱 Notify Me
-                </button>
-            </div>
-            <div id="notifyConf_${p.id}" style="font-size:12px; margin-top:6px; color:#25D366;"></div>
-        </div>`;
-
-    document.getElementById('modalContent').innerHTML = `
-        ${modalImgHtml}
-        <h2>${name}</h2>
-        <h3>🏬 Where to Buy</h3>
-        ${storesHtml}
-        ${recentNewsHtml}
-        ${notifyHtml}
-    `;
-}
-
-function closeProductModal() {
-    document.getElementById('productModal').classList.remove('show');
 }
 
 // Show sighting modal
@@ -1472,37 +1396,6 @@ async function submitSighting() {
         refreshDashboard();
     } else {
         toast('Oops! ' + (data.message || 'Something went wrong'));
-    }
-}
-
-// WhatsApp subscription — subscribe to ALL products
-async function subscribeWhatsApp() {
-    const phone = document.getElementById('whatsappInput').value.trim();
-
-    if (!phone) {
-        toast('Please enter your WhatsApp number!');
-        return;
-    }
-
-    if (phone.length < 8) {
-        toast('Please enter a valid phone number (e.g. +971501234567)');
-        return;
-    }
-
-    const data = await api('/api/whatsapp-subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ phone, subscribe_all: true })
-    });
-
-    if (data.success) {
-        toast('📱 WhatsApp alerts activated!');
-        document.getElementById('whatsappInput').value = '';
-        const conf = document.getElementById('whatsappConfirmation');
-        conf.textContent = `✅ ${data.phone} subscribed! You'll get WhatsApp alerts for all toys.`;
-        conf.classList.add('show');
-        setTimeout(() => conf.classList.remove('show'), 5000);
-    } else {
-        toast('Error: ' + (data.error || 'Try again'));
     }
 }
 
