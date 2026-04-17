@@ -243,18 +243,18 @@ SEARCH_TERMS = {
     54: "needoh+good+vibes+heart", # Good Vibes Only Heart
     55: "needoh+fuzz+ball+wild+cats", # Fuzz Ball Wild Cats
     56: "needoh+groovy+jewel",   # Groovy Jewel
-    # 57 removed (Cloud Pleaser)
-    58: "needoh+bubble+glob",    # Bubble Glob
-    59: "needoh+baby+boos",      # Baby Boos
-    60: "needoh+dohzee",         # Dohzee
-    61: "needoh+glowy+ghost",    # Glowy Ghost
-    62: "needoh+sugar+skull+cats", # Sugar Skull Cats
-    63: "needoh+cool+cane",      # Cool Cane
-    64: "needoh+golden+egg+hunt", # Golden Egg Hunt
-    65: "needoh+nice+cube+glow", # Nice Cube Glow
-    66: "needoh+color+change",   # Color Change
-    67: "needoh+stickums",       # Stickums
-    68: "needoh+swirl",          # Swirl
+    # 57 removed (Cloud Pleaser) — indices shifted down by 1
+    57: "needoh+bubble+glob",    # Bubble Glob
+    58: "needoh+baby+boos",      # Baby Boos
+    59: "needoh+dohzee",         # Dohzee
+    60: "needoh+glowy+ghost",    # Glowy Ghost
+    61: "needoh+sugar+skull+cats", # Sugar Skull Cats
+    62: "needoh+cool+cane",      # Cool Cane
+    63: "needoh+golden+egg+hunt", # Golden Egg Hunt
+    64: "needoh+nice+cube+glow", # Nice Cube Glow
+    65: "needoh+color+change",   # Color Change
+    66: "needoh+stickums",       # Stickums
+    67: "needoh+swirl",          # Swirl
 }
 
 STORE_URL_TEMPLATES = {
