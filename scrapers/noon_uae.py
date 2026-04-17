@@ -67,10 +67,20 @@ class NoonScraper(BaseScraper):
             if result and result.status != 'UNKNOWN':
                 return result
 
+            # Try HTML page with __NEXT_DATA__ parsing (last resort)
+            result = self._html_search(url, product_name)
+            if result and result.status != 'UNKNOWN':
+                return result
+
+            # Try proxy HTML page (different IP + HTML parsing)
+            result = self._proxy_html_search(url, product_name)
+            if result and result.status != 'UNKNOWN':
+                return result
+
             # All methods failed
             return ScrapingResult(
                 status='UNKNOWN',
-                error='Noon not reachable (set PROXY_URL to bypass IP block)',
+                error='Noon not reachable from any method (API+proxy+HTML all failed)',
                 url=url
             )
 
@@ -331,6 +341,86 @@ class NoonScraper(BaseScraper):
             return None  # Could not determine from HTML
 
         except Exception:
+            return None
+
+    def _proxy_html_search(self, url, product_name):
+        """Use the Cloudflare Worker proxy to fetch Noon's HTML search page,
+        then parse __NEXT_DATA__ embedded JSON for product data."""
+        if not PROXY_URL:
+            return None
+
+        try:
+            from bs4 import BeautifulSoup
+
+            # Fetch the HTML page through the proxy
+            response = self.proxy_get(url, headers=self.WEB_API_HEADERS, timeout=25)
+            if not response or response.status_code != 200:
+                return None
+
+            html = response.text
+            if not html or len(html) < 500:
+                return None
+
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Look for __NEXT_DATA__ which contains search results as embedded JSON
+            next_data = soup.find('script', id='__NEXT_DATA__')
+            if next_data:
+                try:
+                    data = json.loads(next_data.string)
+                    page_props = data.get('props', {}).get('pageProps', {})
+                    catalog = page_props.get('catalog', {}) or page_props.get('searchResult', {})
+                    hits = catalog.get('hits', []) or catalog.get('products', [])
+
+                    if hits:
+                        for hit in hits[:10]:
+                            title = hit.get('name', '') or hit.get('title', '')
+                            if product_name and not self._is_relevant(title, product_name):
+                                continue
+                            price = hit.get('sale_price') or hit.get('price')
+                            is_buyable = hit.get('is_buyable', True)
+
+                            product_url = hit.get('url', '')
+                            if product_url and not product_url.startswith('http'):
+                                product_url = f"https://www.noon.com/uae-en/{product_url}"
+
+                            delivery_estimate = None
+                            delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
+                            if delivery_text:
+                                delivery_estimate = delivery_text
+
+                            return ScrapingResult(
+                                status='IN_STOCK' if is_buyable and price else 'OUT_OF_STOCK',
+                                price=float(price) if price else None,
+                                product_title=title,
+                                seller=hit.get('seller_name'),
+                                raw_text=f'Noon proxy HTML/NEXT_DATA: {title}',
+                                url=product_url or url,
+                                delivery_estimate=delivery_estimate
+                            )
+
+                        # Had hits but none matched
+                        return ScrapingResult(
+                            status='OUT_OF_STOCK',
+                            raw_text=f'No matching product on Noon (proxy HTML)',
+                            url=url
+                        )
+                except (json.JSONDecodeError, KeyError):
+                    pass
+
+            # Check page text for stock signals
+            page_text = soup.get_text(' ', strip=True).lower()
+            if 'no results' in page_text or '0 results' in page_text:
+                return ScrapingResult(
+                    status='OUT_OF_STOCK',
+                    raw_text='No results on Noon (proxy HTML)',
+                    url=url
+                )
+
+            return None
+
+        except Exception as e:
+            print(f"  Noon proxy HTML search failed: {e}")
             return None
 
     def _proxy_api_search(self, url, product_name):

@@ -234,6 +234,12 @@ def update_listing_status(listing_id, status, price=None, raw_text=None, seller=
                            (listing_id,)).fetchone()
         previous_status = old['stock_status'] if old else None
         now = datetime.utcnow().isoformat()
+
+        # Prevent status regression: don't overwrite a definitive status with UNKNOWN
+        # This handles flaky scrapers that sometimes fail to find a product card
+        if status == 'UNKNOWN' and previous_status in ('IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'):
+            status = previous_status  # Keep the last known good status
+
         changed = previous_status != status
         conn.execute("""
             UPDATE listings SET

@@ -22,12 +22,39 @@ class UbuyScraper(BaseScraper):
     BASE_URL = "https://www.ubuy.ae"
     SEARCH_URL = "https://www.ubuy.ae/en/search/index/view/product/s"
 
+    # Ubuy internal API endpoints for search
+    SEARCH_API_URLS = [
+        "https://www.ubuy.ae/api/products/search",
+        "https://www.ubuy.ae/en/search/index/view/product/s",
+    ]
+
     def check_stock(self, url, product_name=None):
         """
         Check stock for a NeeDoh product on Ubuy.
-        Strategy: proxy fetch → direct fetch → parse HTML for stock indicators.
+        Strategy: Ubuy search API (JSON) → proxy API → proxy HTML → direct HTML.
+        Search pages are JS-rendered so API approach is preferred.
         """
         try:
+            # For search URLs, try the API approach first (search pages are JS-rendered)
+            if '/search' in url or '/s/' in url:
+                query = None
+                if '?q=' in url:
+                    query = url.split('?q=')[1].split('&')[0]
+                elif '/search/' in url:
+                    query = url.split('/search/')[-1].split('?')[0]
+
+                if query:
+                    # Try direct API search
+                    api_result = self._api_search(query, url, product_name)
+                    if api_result and api_result.status != 'UNKNOWN':
+                        return api_result
+
+                    # Try proxy-based API search
+                    proxy_result = self._proxy_api_search(query, url, product_name)
+                    if proxy_result and proxy_result.status != 'UNKNOWN':
+                        return proxy_result
+
+            # For product pages or as fallback, try fetching HTML
             html = None
 
             # Try proxy first (Ubuy may block datacenter IPs)
@@ -42,7 +69,7 @@ class UbuyScraper(BaseScraper):
             if not html:
                 return ScrapingResult(
                     status='UNKNOWN',
-                    error='Failed to fetch Ubuy page',
+                    error='Failed to fetch Ubuy page (all methods failed)',
                     url=url,
                     product_title=product_name
                 )
@@ -64,6 +91,155 @@ class UbuyScraper(BaseScraper):
                 url=url,
                 product_title=product_name
             )
+
+    def _api_search(self, query, original_url, product_name):
+        """Try Ubuy's internal search API (returns JSON, bypasses JS rendering)."""
+        search_term = query.replace('+', ' ')
+
+        for api_base in self.SEARCH_API_URLS:
+            try:
+                api_url = f"{api_base}?q={query}&pageSize=20&country=ae&language=en"
+
+                response = self.session.get(api_url, timeout=15, headers={
+                    'Accept': 'application/json, text/html, */*',
+                    'Referer': f'https://www.ubuy.ae/en/search?q={query}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                })
+
+                if response.status_code != 200:
+                    continue
+
+                # Try to parse as JSON
+                try:
+                    data = response.json()
+                except Exception:
+                    continue
+
+                products = data.get('products', data.get('items', data.get('results', [])))
+                if isinstance(data, list):
+                    products = data
+
+                if not products:
+                    continue
+
+                for item in products[:10]:
+                    title = item.get('title', '') or item.get('name', '') or item.get('productTitle', '')
+                    if not self._is_relevant(title, product_name):
+                        continue
+
+                    price = item.get('price') or item.get('sale_price') or item.get('salePrice')
+                    if isinstance(price, str):
+                        price = self.parse_price(price)
+                    elif price:
+                        price = float(price)
+
+                    # Convert currencies
+                    currency = (item.get('currency', '') or '').upper()
+                    if currency == 'KWD' and price:
+                        price = round(price * KWD_TO_AED, 2)
+                    elif currency == 'USD' and price:
+                        price = round(price * USD_TO_AED, 2)
+
+                    in_stock = not item.get('out_of_stock', False)
+                    product_url = item.get('url', '') or item.get('productUrl', '')
+                    if product_url and not product_url.startswith('http'):
+                        product_url = f"{self.BASE_URL}{product_url}"
+
+                    return ScrapingResult(
+                        status='IN_STOCK' if in_stock and price else 'OUT_OF_STOCK',
+                        price=price,
+                        currency='AED',
+                        seller='Ubuy',
+                        product_title=title,
+                        url=product_url or original_url,
+                        raw_text=f'Ubuy API: {title}'
+                    )
+
+                # Had results but none matched
+                return ScrapingResult(
+                    status='OUT_OF_STOCK',
+                    url=original_url,
+                    product_title=product_name,
+                    raw_text=f'No matching NeeDoh "{search_term}" on Ubuy API'
+                )
+
+            except Exception:
+                continue
+
+        return None  # All API attempts failed
+
+    def _proxy_api_search(self, query, original_url, product_name):
+        """Try Ubuy search API through the Cloudflare Worker proxy."""
+        search_term = query.replace('+', ' ')
+
+        for api_base in self.SEARCH_API_URLS:
+            try:
+                api_url = f"{api_base}?q={query}&pageSize=20&country=ae&language=en"
+
+                response = self.proxy_get(api_url, headers={
+                    'Accept': 'application/json, text/html, */*',
+                    'Referer': f'https://www.ubuy.ae/en/search?q={query}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                }, timeout=20)
+
+                if not response or response.status_code != 200:
+                    continue
+
+                try:
+                    data = response.json()
+                except Exception:
+                    continue
+
+                products = data.get('products', data.get('items', data.get('results', [])))
+                if isinstance(data, list):
+                    products = data
+
+                if not products:
+                    continue
+
+                for item in products[:10]:
+                    title = item.get('title', '') or item.get('name', '') or item.get('productTitle', '')
+                    if not self._is_relevant(title, product_name):
+                        continue
+
+                    price = item.get('price') or item.get('sale_price') or item.get('salePrice')
+                    if isinstance(price, str):
+                        price = self.parse_price(price)
+                    elif price:
+                        price = float(price)
+
+                    currency = (item.get('currency', '') or '').upper()
+                    if currency == 'KWD' and price:
+                        price = round(price * KWD_TO_AED, 2)
+                    elif currency == 'USD' and price:
+                        price = round(price * USD_TO_AED, 2)
+
+                    in_stock = not item.get('out_of_stock', False)
+                    product_url = item.get('url', '') or item.get('productUrl', '')
+                    if product_url and not product_url.startswith('http'):
+                        product_url = f"{self.BASE_URL}{product_url}"
+
+                    return ScrapingResult(
+                        status='IN_STOCK' if in_stock and price else 'OUT_OF_STOCK',
+                        price=price,
+                        currency='AED',
+                        seller='Ubuy',
+                        product_title=title,
+                        url=product_url or original_url,
+                        raw_text=f'Ubuy proxy API: {title}'
+                    )
+
+                return ScrapingResult(
+                    status='OUT_OF_STOCK',
+                    url=original_url,
+                    product_title=product_name,
+                    raw_text=f'No matching NeeDoh "{search_term}" on Ubuy proxy API'
+                )
+
+            except Exception:
+                continue
+
+        return None
 
     def _parse_search_page(self, soup, html, url, product_name):
         """Parse Ubuy search results page."""
