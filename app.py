@@ -1294,34 +1294,34 @@ function renderProducts(products) {
         const emoji = getEmoji(p.canonical_name);
         const color = getCardColor();
         const inStock = p.in_stock_count || 0;
-        const total = p.listing_count || 0;
 
         let statusClass, statusText;
         if (inStock > 0) {
             statusClass = 'status-available';
-            statusText = `✅ Available (${inStock}/${total} stores)`;
+            statusText = '✅ AVAILABLE';
         } else if (!p.last_check) {
             statusClass = 'status-checking';
-            statusText = '⏳ Checking...';
+            statusText = '⏳ CHECKING...';
         } else {
             statusClass = 'status-out-of-stock';
-            statusText = '❌ Out of Stock';
+            statusText = '❌ OUT OF STOCK';
         }
 
-        // Build per-store price rows — sort: Amazon, Noon, Desertcart, Ubuy, Virgin, others
-        const storeOrder = {'Amazon': 1, 'Amazon.ae': 1, 'Noon': 2, 'Noon UAE': 2, 'Desertcart': 3, 'Ubuy': 4};
-        const storeListings = (p.store_listings || []).slice().sort((a, b) => {
-            const aKey = Object.keys(storeOrder).find(k => a.store_name.includes(k)) || a.store_name;
-            const bKey = Object.keys(storeOrder).find(k => b.store_name.includes(k)) || b.store_name;
-            return (storeOrder[aKey] || 99) - (storeOrder[bKey] || 99);
-        });
+        // Build per-store price rows — only show Amazon and Noon (Desertcart/Ubuy disabled for now)
+        const activeStores = ['Amazon', 'Noon'];
+        const storeOrder = {'Amazon': 1, 'Amazon.ae': 1, 'Noon': 2, 'Noon UAE': 2};
+        const storeListings = (p.store_listings || [])
+            .filter(sl => activeStores.some(s => sl.store_name.includes(s)))
+            .sort((a, b) => {
+                const aKey = Object.keys(storeOrder).find(k => a.store_name.includes(k)) || a.store_name;
+                const bKey = Object.keys(storeOrder).find(k => b.store_name.includes(k)) || b.store_name;
+                return (storeOrder[aKey] || 99) - (storeOrder[bKey] || 99);
+            });
 
         // Store logo URLs
         const storeLogos = {
             'Amazon': 'https://www.google.com/s2/favicons?domain=amazon.ae&sz=32',
             'Noon': 'https://www.google.com/s2/favicons?domain=noon.com&sz=32',
-            'Desertcart': 'https://www.google.com/s2/favicons?domain=desertcart.ae&sz=32',
-            'Ubuy': 'https://www.google.com/s2/favicons?domain=ubuy.ae&sz=32',
         };
         function storeIcon(name) {
             const key = Object.keys(storeLogos).find(k => name.includes(k));
