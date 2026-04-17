@@ -1175,6 +1175,7 @@ DASHBOARD_HTML = r"""
 // Product image mapping — 26 verified NeeDoh products
 // Sources: myneedoh.com, target.scene7.com, retailer CDNs
 const PRODUCT_IMAGES = {
+    // === Original 26 products ===
     'Classic':        'https://myneedoh.com/wp-content/uploads/2024/10/nd1.jpg',
     'Nice Cube':      'https://myneedoh.com/wp-content/uploads/2025/08/717FM41-pPL._AC_SL1500_.jpg',
     'Gummy Bear':     'https://myneedoh.com/wp-content/uploads/2025/08/714i4fiAGsL._AC_SL1500_.jpg',
@@ -1201,6 +1202,49 @@ const PRODUCT_IMAGES = {
     'Jelly Squish':   'https://static.wixstatic.com/media/ec641f_585b0e3085bc4074bebf39ad192e8114~mv2.jpg/v1/fill/w_800,h_800,al_c,q_90,enc_auto/ec641f_585b0e3085bc4074bebf39ad192e8114~mv2.jpg',
     'Super NeeDoh':   'https://myneedoh.com/wp-content/uploads/2024/10/nd4.jpg',
     'Teenie':         'https://myneedoh.com/wp-content/uploads/2024/10/nd9.jpg',
+    // === New 43 products ===
+    'Peace O Cake':   'https://birdinhand.com/cdn/shop/files/POCND_Image5_384x384.jpg?v=1769618740',
+    'Dippin Dazzler': 'https://target.scene7.com/is/image/Target/GUEST_893acc13-f899-4ca8-bc3b-2befce010ce1?wid=800&hei=800&fmt=pjpeg',
+    'Jelly Hops':     'https://m.media-amazon.com/images/I/51IsUS2WJrL._AC_UL320_.jpg',
+    'Nice Ice Baby':  'https://birdinhand.com/cdn/shop/files/Screenshot2025-06-14at6.22.58PM_384x385.png?v=1749951714',
+    'Nice Cream Cone':'https://birdinhand.com/cdn/shop/files/NCCND_Image5_384x384.jpg?v=1769618907',
+    'Mello Mallo':    'https://target.scene7.com/is/image/Target/GUEST_9e174210-e232-44cf-b838-4dfc7465922e?wid=800&hei=800&fmt=pjpeg',
+    'Nice Berg':      'https://birdinhand.com/cdn/shop/files/Screenshot2025-06-14at5.50.41PM_384x303.png?v=1749948787',
+    'Booper':         'https://www.thetoyfolks.com/cdn/shop/products/schyllingneedohbooper.webp?v=1679652943&width=800',
+    'Funky Pups':     'https://target.scene7.com/is/image/Target/GUEST_e6d2abaa-1065-4f29-a4a1-34ca0ad62956?wid=800&hei=800&fmt=pjpeg',
+    'Hot Shot':       'https://target.scene7.com/is/image/Target/GUEST_5ba95ea3-8490-4a82-ace3-fd4721fa69aa?wid=800&hei=800&fmt=pjpeg',
+    'Squeezza Pizza': 'https://www.rocketcitytoys.com/cdn/shop/files/SQZND.jpg?v=1766957174&width=800',
+    'Atomic':         'https://birdinhand.com/cdn/shop/products/AtomicNeeDoh02_384x384.jpg?v=1672521444',
+    'Sploot Splat':   'https://www.rocketcitytoys.com/cdn/shop/files/SPLND_1.jpg?v=1772123763&width=800',
+    'Lava Squish':    'https://images-na.ssl-images-amazon.com/images/I/61SJ8wJ8C2L._AC_SY355_.jpg',
+    'Advent Calendar':'https://www.rocketcitytoys.com/cdn/shop/files/Schylling-NeeDoh-Advent-Calendar-24-Days-of-Surprise-Toys-Children-Ages-3-and-up_966af645-beb4-4634-a0a3-787a7be57aff.caf173db7f857e82210c27c9c6ef197a.jpg?v=1763756814&width=800',
+    'Cube Swirl':     'https://birdinhand.com/cdn/shop/files/Screenshot2025-06-14at6.01.05PM_384x320.png?v=1749950275',
+    'Marble Egg':     'https://target.scene7.com/is/image/Target/GUEST_6f7a2410-14ff-4fec-9da0-72c4115472d6?wid=800&hei=800&fmt=pjpeg',
+    'Wonder Waves':   'https://birdinhand.com/cdn/shop/files/WWFZBND__8_384x384.jpg?v=1754796976',
+    'Dohnut Jelly':   'https://www.rocketcitytoys.com/cdn/shop/files/download-2024-03-13t104529990.webp?v=1737132235&width=800',
+    'Fuzz Ball Teenie':'https://birdinhand.com/cdn/shop/files/FZBTND-NeeDoh-Teenie-FuzzBall-Product-Group_384x384.jpg?v=1769226563',
+    'Groovy Shroom':  'https://sterlingtoystore.com/cdn/shop/files/Groovy_Shroom_Nee_Doh.png?v=1722627251&width=800',
+    'Squeezy Peezy':  'https://www.thestorebeforetime.com/cdn/shop/files/8D5C32F6-FB36-4301-A84B-F5C488956414.png?v=1719098098&width=800',
+    'Happy Snappy':   'https://birdinhand.com/cdn/shop/products/IMG_6401_37c61980-c809-4ae2-b95f-35ec03757326_384x384.jpg?v=1657755460',
+    'Squeeze Hearts': 'https://m.media-amazon.com/images/I/71iFhK6L9DL._AC_UL320_.jpg',
+    'Ripples':        'https://www.rocketcitytoys.com/cdn/shop/files/RSPND_1.jpg?v=1771832332&width=800',
+    'Snow Globe':     'https://littleshop.toys/cdn/shop/files/needoh-snow-globe-sqmsg24-791759.jpg?v=1730760880&width=800',
+    'Super NeeDoh Cool':'https://birdinhand.com/cdn/shop/files/CCSPND-Super-NeeDoh-CoolCats-Pink-3Q-Left-web_384x384.jpg?v=1738051385',
+    'Flower Power':   'https://www.rocketcitytoys.com/cdn/shop/files/FPFZBND__9.jpg?v=1747105213&width=800',
+    'Good Vibes':     'https://birdinhand.com/cdn/shop/files/GVND-Nee-Doh-Good-Vibes-Only-Product-GrooveisintheHeart_384x384.jpg?v=1769227034',
+    'Wild Cats':      'https://birdinhand.com/cdn/shop/files/WCFZBND_Image2_384x384.jpg?v=1770483372',
+    'Groovy Jewel':   'https://m.media-amazon.com/images/I/61i+r+BmNjL._AC_UL320_.jpg',
+    'Cloud Pleaser':  'https://m.media-amazon.com/images/I/71JXzveyFQL._AC_UL320_.jpg',
+    'Bubble Glob':    'https://birdinhand.com/cdn/shop/products/BTSQ-Bubble-Glob-Nee-Doh-Lifestyle-web_384x384.jpg?v=1640722254',
+    'Baby Boos':      'https://www.rocketcitytoys.com/cdn/shop/files/NDWBB26.jpg?v=1766956087&width=800',
+    'Dohzee':         'https://m.media-amazon.com/images/I/71oxTqWOm+L._AC_UL320_.jpg',
+    'Glowy Ghost':    'https://www.isaacstreasures.com/wp-content/uploads/2025/10/wp-image-77402901807484.webp',
+    'Sugar Skull':    'https://birdinhand.com/cdn/shop/files/SSCCND-NeeDoh-SugarSkull-CoolCats-PKG-3Q-Right-White2_384x324.jpg?v=1769618481',
+    'Cool Cane':      'https://www.curiousmindsbusybags.com/cdn/shop/files/NEEDOHEGGHUNT1.jpg?v=1771378256',
+    'Golden Egg':     'https://www.curiousmindsbusybags.com/cdn/shop/files/NEEDOHEGGHUNT1.jpg?v=1771378256',
+    'Cube Glow':      'https://birdinhand.com/cdn/shop/files/GNCBND-_NeeDoh-Nice-Cube-Glow-Product-Pink_384x384.jpg?v=1770482933',
+    'Stickums':       'https://birdinhand.com/cdn/shop/files/STUM-NeeDoh-Stickums-Hand5-web_384x384.jpg?v=1704410183',
+    'Swirl':          'https://birdinhand.com/cdn/shop/products/SWND-Swirl-Nee-Doh-Item-GreenLime-web_384x384.jpg?v=1617406366',
 };
 
 // Fallback emojis if image fails to load — all 26 products
@@ -1345,7 +1389,7 @@ function renderProducts(products) {
         if (storeListings.length > 0) {
             const rows = storeListings.map(sl => {
                 const storeShort = sl.store_name.replace(' UAE', '').replace(' Megastore', '');
-                const price = sl.last_price ? `AED ${sl.last_price.toFixed(0)}` : '—';
+                const price = sl.last_price ? `AED ${sl.last_price.toFixed(0)}` : (sl.stock_status === 'IN_STOCK' ? 'Check price' : '—');
                 // Use real delivery estimate from scraper (only show when product is in stock)
                 let deliveryShort = '';
                 if (sl.stock_status === 'IN_STOCK' && sl.delivery_estimate) {
