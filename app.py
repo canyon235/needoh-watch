@@ -1182,7 +1182,7 @@ const PRODUCT_IMAGES = {
     'Dohjees':        'https://myneedoh.com/wp-content/uploads/2025/12/81.jpg',
     'Panic Pete':     'https://childsplaytoyssf.com/cdn/shop/products/PPST-Panic-Pete-Squeeze-web-1536x1536_1250x1250.jpg?v=1614039497',
     'Chickadeedoos':  'https://cdn11.bigcommerce.com/s-65gzldhg/images/stencil/1280x1280/products/8565/11515/chickadeedoos_blue_CDDND24__99485.1705010497.jpg?c=2',
-    'Jelly Squish':   'https://myneedoh.com/wp-content/uploads/2025/12/61.jpg',
+    'Jelly Squish':   'https://static.wixstatic.com/media/ec641f_585b0e3085bc4074bebf39ad192e8114~mv2.jpg/v1/fill/w_800,h_800,al_c,q_90,enc_auto/ec641f_585b0e3085bc4074bebf39ad192e8114~mv2.jpg',
     'Super NeeDoh':   'https://myneedoh.com/wp-content/uploads/2024/10/nd4.jpg',
     'Teenie':         'https://myneedoh.com/wp-content/uploads/2024/10/nd9.jpg',
 };
