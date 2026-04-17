@@ -1717,17 +1717,13 @@ if __name__ == '__main__':
                         (p['canonical_name'], p.get('variant'), json.dumps(p.get('aliases', [])))
                     )
                     new_pid = cursor.lastrowid
-                    # Add listings for this product on Amazon + Noon
+                    # Add listings for this product on Amazon + Noon only
                     term = SEARCH_TERMS.get(idx, 'needoh')
                     for store_name, sid in store_ids.items():
                         if store_name == 'Amazon.ae':
                             url = f"https://www.amazon.ae/s?k={term}"
                         elif store_name == 'Noon':
                             url = f"https://www.noon.com/uae-en/search/?q={term}"
-                        elif store_name == 'Ubuy':
-                            url = f"https://www.ubuy.ae/en/search?q={term}"
-                        elif store_name == 'Desertcart':
-                            url = f"https://www.desertcart.ae/search?query={term}"
                         else:
                             continue
                         conn.execute(
@@ -1742,30 +1738,15 @@ if __name__ == '__main__':
             else:
                 print(f"  ✓ All products already in DB")
 
-            # Migration: add Desertcart store if missing
-            desertcart = conn.execute("SELECT id FROM stores WHERE name = 'Desertcart'").fetchone()
-            if not desertcart:
-                print("  Adding Desertcart store...")
-                cursor = conn.execute(
-                    """INSERT INTO stores (name, type, city, base_url, supports_store_check, check_interval_minutes)
-                       VALUES ('Desertcart', 'online', 'UAE', 'https://www.desertcart.ae', 0, 720)"""
-                )
-                dc_store_id = cursor.lastrowid
-
-                # Add Desertcart listings for all products
-                products = conn.execute("SELECT id, canonical_name FROM products ORDER BY id").fetchall()
-                from data.seed import SEARCH_TERMS
-                product_list = list(products)
-                for idx, product in enumerate(product_list):
-                    term = SEARCH_TERMS.get(idx, 'needoh')
-                    url = f"https://www.desertcart.ae/search?query={term}"
-                    conn.execute(
-                        "INSERT INTO listings (product_id, store_id, url) VALUES (?, ?, ?)",
-                        (product['id'], dc_store_id, url)
-                    )
-                print(f"  ✓ Added Desertcart store + {len(product_list)} listings")
-            else:
-                print(f"  ✓ Desertcart store already exists")
+            # Migration: remove Desertcart and Ubuy stores (no longer tracked)
+            for removed_store in ['Desertcart', 'Ubuy']:
+                removed = conn.execute("SELECT id FROM stores WHERE name = ?", (removed_store,)).fetchone()
+                if removed:
+                    conn.execute("DELETE FROM check_log WHERE listing_id IN (SELECT id FROM listings WHERE store_id = ?)", (removed['id'],))
+                    conn.execute("DELETE FROM alerts WHERE listing_id IN (SELECT id FROM listings WHERE store_id = ?)", (removed['id'],))
+                    conn.execute("DELETE FROM listings WHERE store_id = ?", (removed['id'],))
+                    conn.execute("DELETE FROM stores WHERE id = ?", (removed['id'],))
+                    print(f"  ✓ Removed {removed_store} store and all its listings")
 
             # Migration: remove Cloud Pleaser (unverified product)
             cloud = conn.execute("SELECT id FROM products WHERE canonical_name = 'NeeDoh Cloud Pleaser'").fetchone()
