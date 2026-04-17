@@ -194,8 +194,11 @@ def get_store_by_name(name):
 def get_listings_for_product(product_id):
     with get_db() as conn:
         return conn.execute("""
-            SELECT l.*, s.name as store_name, s.type as store_type
-            FROM listings l JOIN stores s ON l.store_id = s.id
+            SELECT l.*, p.canonical_name, p.variant,
+                   s.name as store_name, s.type as store_type
+            FROM listings l
+            JOIN stores s ON l.store_id = s.id
+            JOIN products p ON l.product_id = p.id
             WHERE l.product_id = ?
             ORDER BY s.name
         """, (product_id,)).fetchall()
