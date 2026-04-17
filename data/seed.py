@@ -61,6 +61,44 @@ PRODUCTS = [
     {"canonical_name": "Super NeeDoh", "variant": "Jumbo", "aliases": ["Super NeeDoh", "Jumbo Needoh", "Large Needoh", "Super Nee Doh"]},
     # 25 - Teenie
     {"canonical_name": "NeeDoh Teenie", "variant": "Pack", "aliases": ["Teenie Pack", "Teenie NeeDoh", "Mini Needoh", "Teenie Gobs of Globs", "Rainboh Teenie", "Hot Shot Teenie"]},
+    # 26 - Peace O Cake
+    {"canonical_name": "NeeDoh Peace O Cake", "variant": None, "aliases": ["Peace O Cake", "Peace of Cake", "Piece of Cake NeeDoh", "Nee Doh Peace Cake"]},
+    # 27 - Dippin Dazzler
+    {"canonical_name": "NeeDoh Dippin Dazzler", "variant": None, "aliases": ["Dippin Dazzler", "Dazzler Eggs", "Dippin Dazzler Eggs", "Color Changing Egg"]},
+    # 28 - Jelly Hops
+    {"canonical_name": "NeeDoh Jelly Hops", "variant": None, "aliases": ["Jelly Hops", "Squishy Bunny", "Jelly Hops Bunny", "Nee Doh Jelly Hops"]},
+    # 29 - Nice Ice Baby
+    {"canonical_name": "NeeDoh Nice Ice Baby", "variant": None, "aliases": ["Nice Ice Baby", "Ice Baby NeeDoh", "Crushed Ice NeeDoh"]},
+    # 30 - Nice Cream Cone
+    {"canonical_name": "NeeDoh Nice Cream Cone", "variant": None, "aliases": ["Nice Cream Cone", "Ice Cream Cone NeeDoh", "Nice Cream"]},
+    # 31 - Mello Mallo
+    {"canonical_name": "NeeDoh Mello Mallo", "variant": None, "aliases": ["Mello Mallo", "Color Change Mello Mallo", "Marshmallow NeeDoh"]},
+    # 32 - Nice Berg
+    {"canonical_name": "NeeDoh Nice Berg", "variant": None, "aliases": ["Nice Berg", "Niceberg", "Nice Berg Swirl", "Nice Berg Glitter"]},
+    # 33 - Booper
+    {"canonical_name": "NeeDoh Booper", "variant": None, "aliases": ["Booper", "Booper NeeDoh", "Nee Doh Booper"]},
+    # 34 - Funky Pups
+    {"canonical_name": "NeeDoh Funky Pups", "variant": None, "aliases": ["Funky Pups", "Funky Pup", "Teenie Funky Pups", "Nee Doh Funky Pups"]},
+    # 35 - Hot Shot
+    {"canonical_name": "NeeDoh Hot Shot", "variant": None, "aliases": ["Hot Shot", "Hot Shots", "Hot Shot Sports", "Hot Shots Football"]},
+    # 36 - Squeezza Pizza
+    {"canonical_name": "NeeDoh Squeezza Pizza", "variant": None, "aliases": ["Squeezza Pizza", "Pizza NeeDoh", "Squeeze Pizza"]},
+    # 37 - Atomic
+    {"canonical_name": "NeeDoh Atomic", "variant": None, "aliases": ["Atomic NeeDoh", "Atomic Squeeze", "Nee Doh Atomic"]},
+    # 38 - Sploot Splat
+    {"canonical_name": "NeeDoh Sploot Splat", "variant": None, "aliases": ["Sploot Splat", "Sploot NeeDoh", "Nee Doh Sploot"]},
+    # 39 - Lava Squish
+    {"canonical_name": "NeeDoh Lava Squish", "variant": None, "aliases": ["Lava Squish", "Lava Squish N Flow", "Lava NeeDoh"]},
+    # 40 - Advent Calendar
+    {"canonical_name": "NeeDoh Advent Calendar", "variant": None, "aliases": ["Advent Calendar", "Squishmas Calendar", "24 Days NeeDoh", "NeeDoh Calendar"]},
+    # 41 - Nice Cube Swirl
+    {"canonical_name": "NeeDoh Nice Cube Swirl", "variant": None, "aliases": ["Nice Cube Swirl", "Swirl Cube", "Swirl Nice Cube"]},
+    # 42 - Marble Egg
+    {"canonical_name": "NeeDoh Marble Egg", "variant": None, "aliases": ["Marble Egg", "Magic Colour Egg", "Easter Egg NeeDoh"]},
+    # 43 - Fuzz Ball Wonder Waves
+    {"canonical_name": "NeeDoh Fuzz Ball Wonder Waves", "variant": None, "aliases": ["Wonder Waves", "Fuzz Ball Wonder Waves", "Wavy Fuzz Ball"]},
+    # 44 - Dohnut Jelly Squeeze
+    {"canonical_name": "NeeDoh Dohnut Jelly Squeeze", "variant": None, "aliases": ["Dohnut Jelly Squeeze", "Jelly Donut", "Dohnut Jelly"]},
 ]
 
 STORES = [
@@ -127,6 +165,25 @@ SEARCH_TERMS = {
     23: "needoh+jelly+squish", # Jelly Squish
     24: "super+needoh",        # Super NeeDoh
     25: "needoh+teenie",       # Teenie
+    26: "needoh+peace+o+cake", # Peace O Cake
+    27: "needoh+dippin+dazzler", # Dippin Dazzler
+    28: "needoh+jelly+hops",   # Jelly Hops
+    29: "needoh+nice+ice+baby", # Nice Ice Baby
+    30: "needoh+nice+cream+cone", # Nice Cream Cone
+    31: "needoh+mello+mallo",  # Mello Mallo
+    32: "needoh+nice+berg",    # Nice Berg
+    33: "needoh+booper",       # Booper
+    34: "needoh+funky+pups",   # Funky Pups
+    35: "needoh+hot+shot",     # Hot Shot
+    36: "needoh+squeezza+pizza", # Squeezza Pizza
+    37: "needoh+atomic",       # Atomic
+    38: "needoh+sploot+splat", # Sploot Splat
+    39: "needoh+lava+squish",  # Lava Squish
+    40: "needoh+advent+calendar", # Advent Calendar
+    41: "needoh+nice+cube+swirl", # Nice Cube Swirl
+    42: "needoh+marble+egg",   # Marble Egg
+    43: "needoh+fuzz+ball+wonder+waves", # Fuzz Ball Wonder Waves
+    44: "needoh+dohnut+jelly+squeeze", # Dohnut Jelly Squeeze
 }
 
 STORE_URL_TEMPLATES = {

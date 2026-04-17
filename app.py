@@ -1212,6 +1212,12 @@ const PRODUCT_EMOJIS = {
     'Glow in the Dark': '🌙', 'Dohnuts': '🍩', 'Nice-Sicle': '🍦', 'Color Change': '🎨',
     'Dohjees': '🎲', 'Panic Pete': '😱', 'Chickadeedoos': '🐣', 'Jelly Squish': '🍮',
     'Super NeeDoh': '💪', 'Teenie': '🎯',
+    'Peace O Cake': '🎂', 'Dippin Dazzler': '🥚', 'Jelly Hops': '🐰',
+    'Nice Ice Baby': '🧊', 'Nice Cream Cone': '🍦', 'Mello Mallo': '🍡',
+    'Nice Berg': '🏔️', 'Booper': '👃', 'Funky Pups': '🐶', 'Hot Shot': '🏀',
+    'Squeezza Pizza': '🍕', 'Atomic': '⚛️', 'Sploot Splat': '💥',
+    'Lava Squish': '🌋', 'Advent Calendar': '🎄', 'Cube Swirl': '🌀',
+    'Marble Egg': '🥚', 'Wonder Waves': '🌊', 'Dohnut Jelly': '🍩',
 };
 
 // Color rotation for product cards
@@ -1494,18 +1500,45 @@ if __name__ == '__main__':
 
             print(f"  DB: {product_count} products, {store_count} stores, {listing_count} listings")
 
-            # If products are missing, wipe and re-seed
-            if product_count != 26:
-                print(f"  ⚠ Expected 26 products — wiping and re-seeding...")
-                conn.execute("DELETE FROM check_log")
-                conn.execute("DELETE FROM alerts")
-                conn.execute("DELETE FROM sightings")
-                conn.execute("DELETE FROM subscriptions")
-                conn.execute("DELETE FROM listings")
-                conn.execute("DELETE FROM stores")
-                conn.execute("DELETE FROM products")
-                seed_all()
-                print(f"  ✓ Re-seeded")
+            # Add any new products from seed that aren't in DB yet
+            from data.seed import PRODUCTS as SEED_PRODUCTS, SEARCH_TERMS, STORE_URL_TEMPLATES
+            existing_names = [r['canonical_name'] for r in
+                              conn.execute("SELECT canonical_name FROM products").fetchall()]
+            store_rows = conn.execute("SELECT id, name FROM stores").fetchall()
+            store_ids = {r['name']: r['id'] for r in store_rows}
+
+            new_count = 0
+            for idx, p in enumerate(SEED_PRODUCTS):
+                if p['canonical_name'] not in existing_names:
+                    cursor = conn.execute(
+                        "INSERT INTO products (canonical_name, variant, aliases) VALUES (?, ?, ?)",
+                        (p['canonical_name'], p.get('variant'), json.dumps(p.get('aliases', [])))
+                    )
+                    new_pid = cursor.lastrowid
+                    # Add listings for this product on Amazon + Noon
+                    term = SEARCH_TERMS.get(idx, 'needoh')
+                    for store_name, sid in store_ids.items():
+                        if store_name == 'Amazon.ae':
+                            url = f"https://www.amazon.ae/s?k={term}"
+                        elif store_name == 'Noon':
+                            url = f"https://www.noon.com/uae-en/search/?q={term}"
+                        elif store_name == 'Ubuy':
+                            url = f"https://www.ubuy.ae/en/search?q={term}"
+                        elif store_name == 'Desertcart':
+                            url = f"https://www.desertcart.ae/search?query={term}"
+                        else:
+                            continue
+                        conn.execute(
+                            "INSERT INTO listings (product_id, store_id, url) VALUES (?, ?, ?)",
+                            (new_pid, sid, url)
+                        )
+                    new_count += 1
+                    print(f"  + Added: {p['canonical_name']}")
+
+            if new_count > 0:
+                print(f"  ✓ Added {new_count} new products with listings")
+            else:
+                print(f"  ✓ All products already in DB")
 
             # Migration: add Desertcart store if missing
             desertcart = conn.execute("SELECT id FROM stores WHERE name = 'Desertcart'").fetchone()
@@ -1543,13 +1576,33 @@ if __name__ == '__main__':
                 conn.execute("ALTER TABLE listings ADD COLUMN delivery_estimate TEXT")
                 print("  ✓ Added delivery_estimate column")
 
+            # Set known Noon product URLs for new products (from user-discovered links)
+            noon_urls = {
+                'NeeDoh Nice-Sicle': 'https://www.noon.com/uae-en/popsicle-squishy-toy-stress-relief-fidget-toy-soft-tpr-sensory-squeeze-ball-for-kids-adults-portable-anxiety-relief-popsicle/Z4499AFBF507B04CBA10AZ/p/',
+                'NeeDoh Peace O Cake': 'https://www.noon.com/uae-en/needoh-peace-o-cake-squishy-toy-colorful-cake-shaped-stress-relief-fidget-toy/Z481EFFE77BA5C0F38735Z/p/',
+                'NeeDoh Dippin Dazzler': 'https://www.noon.com/uae-en/needoh-dippin-dazzler-easter-color-changing-egg-color-random/Z52AB0A71FBDA8332EE20Z/p/',
+                'NeeDoh Jelly Hops': 'https://www.noon.com/uae-en/needoh-jelly-hops-scented-squishy-bunny-fidget-toy-stress-relief-sensory-squeeze-toy-for-kids-adults-anti-anxiety-adhd-focus-desk-toy-pink/ZFC0760281D8F42A6D757Z/p/',
+                'NeeDoh Advent Calendar': 'https://www.noon.com/uae-en/calendar-24-days-of-surprises-squishy-fidget-toys-set-soft-tpr-stress-relief-toys-for-kids-holiday-countdown-calendar-gift-for-boys-girls/Z8594BDDE3038AF2B9C81Z/p/',
+            }
+            noon_store = conn.execute("SELECT id FROM stores WHERE name = 'Noon'").fetchone()
+            if noon_store:
+                noon_id = noon_store['id']
+                for pname, purl in noon_urls.items():
+                    product = conn.execute("SELECT id FROM products WHERE canonical_name = ?", (pname,)).fetchone()
+                    if product:
+                        conn.execute("""
+                            UPDATE listings SET url = ?, stock_status = 'IN_STOCK'
+                            WHERE product_id = ? AND store_id = ? AND url LIKE '%search%'
+                        """, (purl, product['id'], noon_id))
+                print("  ✓ Updated known Noon product URLs")
+
     except Exception as e:
         print(f"  ⚠ Database migration error: {e}")
 
     # Always start background checker — this is a monitoring tool
     bg_thread = threading.Thread(target=background_checker, args=(900,), daemon=True)
     bg_thread.start()
-    print("  ✓ Background checker started (10 min cycle, 104 listings)")
+    print("  ✓ Background checker started (10 min cycle)")
 
     print(f"\n{'='*50}")
     print(f"  🎯 NeeDoh Watch UAE")
