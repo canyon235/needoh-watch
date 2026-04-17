@@ -149,9 +149,7 @@ class NoonScraper(BaseScraper):
                 if stock_text and ('few left' in stock_text.lower() or 'limited' in stock_text.lower()):
                     status = 'LOW_STOCK'
 
-                product_url = hit.get('url', '')
-                if product_url and not product_url.startswith('http'):
-                    product_url = f"https://www.noon.com/uae-en/{product_url}"
+                product_url = self._build_product_url(hit)
 
                 delivery_estimate = None
                 delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
@@ -250,9 +248,7 @@ class NoonScraper(BaseScraper):
                     status = 'LOW_STOCK'
 
                 # Build product URL for buy link
-                product_url = hit.get('url', '')
-                if product_url and not product_url.startswith('http'):
-                    product_url = f"https://www.noon.com/uae-en/{product_url}"
+                product_url = self._build_product_url(hit)
 
                 # Extract delivery estimate from Noon API data
                 delivery_estimate = None
@@ -347,9 +343,7 @@ class NoonScraper(BaseScraper):
                 if stock_text and ('few left' in stock_text.lower() or 'limited' in stock_text.lower()):
                     status = 'LOW_STOCK'
 
-                product_url = hit.get('url', '')
-                if product_url and not product_url.startswith('http'):
-                    product_url = f"https://www.noon.com/uae-en/{product_url}"
+                product_url = self._build_product_url(hit)
 
                 delivery_estimate = None
                 delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
@@ -473,6 +467,18 @@ class NoonScraper(BaseScraper):
             error='Could not check Noon product page',
             url=url
         )
+
+    def _build_product_url(self, hit):
+        """Build a proper Noon product URL from API hit data.
+        Format: https://www.noon.com/uae-en/{slug}/p/{sku}/
+        """
+        slug = hit.get('url', '')
+        sku = hit.get('sku', '')
+        if slug and sku:
+            return f"https://www.noon.com/uae-en/{slug}/p/{sku}/"
+        elif slug:
+            return f"https://www.noon.com/uae-en/{slug}/"
+        return ''
 
     def _is_needoh_brand(self, title):
         """Check if a product is genuinely a NeeDoh/Schylling brand item."""
