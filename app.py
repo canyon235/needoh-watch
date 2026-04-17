@@ -1685,7 +1685,7 @@ function renderProducts(products) {
         if (storeListings.length > 0) {
             const rows = storeListings.map(sl => {
                 const storeShort = sl.store_name.replace(' UAE', '').replace(' Megastore', '');
-                const price = sl.last_price ? `AED ${sl.last_price.toFixed(0)}` : (sl.stock_status === 'IN_STOCK' ? '⏳ Getting price...' : '—');
+                const price = sl.last_price ? `AED ${sl.last_price.toFixed(0)}` : '—';
                 // Use real delivery estimate from scraper (only show when product is in stock)
                 let deliveryShort = '';
                 if (sl.stock_status === 'IN_STOCK' && sl.delivery_estimate) {
