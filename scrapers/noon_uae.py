@@ -1,16 +1,22 @@
 """
 Noon UAE scraper for NeeDoh products.
-Uses Noon's mobile catalog API as the primary method (most reliable),
-with proxy fallback when Render's datacenter IP is blocked.
+Uses ScraperAPI (residential proxies) as the primary method because
+Noon blocks ALL cloud/datacenter IPs (Render, Cloudflare, Vercel, AWS).
+Falls back to direct API calls in case they work from the current IP.
 """
 
+import os
 import re
 import json
 import time
 import random
 import requests
 import cloudscraper
+from urllib.parse import quote_plus
 from scrapers.base import BaseScraper, ScrapingResult, PROXY_URL
+
+# ScraperAPI key — uses residential proxies to bypass Noon's IP blocking
+SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY", "")
 
 
 class NoonScraper(BaseScraper):
@@ -49,10 +55,18 @@ class NoonScraper(BaseScraper):
 
     def check_stock(self, url, product_name=None):
         """Check stock on Noon UAE.
-        Strategy: direct mobile API → direct web API → proxy mobile API → UNKNOWN
+        Strategy: ScraperAPI (residential proxy) → direct mobile API → direct web API → UNKNOWN
+        Noon blocks ALL cloud IPs (Render, Cloudflare, Vercel, AWS).
+        ScraperAPI uses residential proxies that Noon cannot block.
         """
         if 'search' in url or 'q=' in url:
-            # Try mobile API first (most data, fastest)
+            # Try ScraperAPI first (most reliable — uses residential proxies)
+            if SCRAPER_API_KEY:
+                result = self._scraperapi_search(url, product_name)
+                if result and result.status != 'UNKNOWN':
+                    return result
+
+            # Try direct mobile API (works from non-datacenter IPs)
             result = self._mobile_api_search(url, product_name)
             if result and result.status != 'UNKNOWN':
                 return result
@@ -62,25 +76,13 @@ class NoonScraper(BaseScraper):
             if result and result.status != 'UNKNOWN':
                 return result
 
-            # Try through proxy (different IP, bypasses Render blocking)
-            result = self._proxy_api_search(url, product_name)
-            if result and result.status != 'UNKNOWN':
-                return result
-
-            # Try HTML page with __NEXT_DATA__ parsing (last resort)
-            result = self._html_search(url, product_name)
-            if result and result.status != 'UNKNOWN':
-                return result
-
-            # Try proxy HTML page (different IP + HTML parsing)
-            result = self._proxy_html_search(url, product_name)
-            if result and result.status != 'UNKNOWN':
-                return result
-
-            # All methods failed — Noon blocks datacenter IPs and CF Worker IPs
+            # All methods failed
+            hint = ""
+            if not SCRAPER_API_KEY:
+                hint = " Set SCRAPER_API_KEY env var to enable residential proxy."
             return ScrapingResult(
                 status='UNKNOWN',
-                error='Noon blocks server access (datacenter + proxy IPs blocked). Requires residential IP.',
+                error=f'Noon blocks server access (all cloud IPs blocked).{hint}',
                 url=url
             )
 
@@ -93,6 +95,97 @@ class NoonScraper(BaseScraper):
             error='Noon API unreachable',
             url=url
         )
+
+    def _scraperapi_search(self, url, product_name):
+        """Use ScraperAPI (residential proxies) to reach Noon's catalog API.
+        Noon blocks ALL cloud/datacenter IPs. ScraperAPI routes through
+        residential IPs that Noon cannot distinguish from real users.
+        """
+        try:
+            query = re.search(r'[?&]q=([^&]+)', url)
+            if not query:
+                if product_name:
+                    search_term = product_name.replace(' ', '+')
+                else:
+                    return None
+            else:
+                search_term = query.group(1)
+
+            # Build the Noon API URL
+            api_url = f"{self.api_base}search/?q={search_term}&locale=en-ae&limit=20"
+
+            # Route through ScraperAPI
+            scraper_url = f"https://api.scraperapi.com/?api_key={SCRAPER_API_KEY}&url={quote_plus(api_url)}"
+
+            response = requests.get(scraper_url, timeout=60)
+            if response.status_code != 200:
+                print(f"  Noon ScraperAPI returned {response.status_code}")
+                return None
+
+            data = response.json()
+            hits = data.get('hits', [])
+            display_term = search_term.replace('+', ' ')
+
+            if not hits:
+                return ScrapingResult(
+                    status='OUT_OF_STOCK',
+                    raw_text=f'No results for "{display_term}" on Noon (via ScraperAPI)',
+                    url=url
+                )
+
+            # Find best match
+            for hit in hits[:10]:
+                title = hit.get('name', '') or hit.get('title', '')
+                if not self._is_relevant(title, product_name or display_term):
+                    continue
+
+                price = hit.get('sale_price') or hit.get('price')
+                offer_price = hit.get('offer_price')
+                actual_price = offer_price or price
+                is_buyable = hit.get('is_buyable', False)
+                stock_text = hit.get('stock_text', '')
+
+                status = 'IN_STOCK' if is_buyable else 'OUT_OF_STOCK'
+                if stock_text and ('few left' in stock_text.lower() or 'limited' in stock_text.lower()):
+                    status = 'LOW_STOCK'
+
+                product_url = hit.get('url', '')
+                if product_url and not product_url.startswith('http'):
+                    product_url = f"https://www.noon.com/uae-en/{product_url}"
+
+                delivery_estimate = None
+                delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
+                if delivery_text:
+                    delivery_estimate = delivery_text
+                elif hit.get('is_express_delivery'):
+                    delivery_estimate = 'Express delivery available'
+                elif hit.get('delivery_days'):
+                    delivery_estimate = f"Delivers in {hit['delivery_days']} days"
+
+                return ScrapingResult(
+                    status=status,
+                    price=float(actual_price) if actual_price else None,
+                    product_title=title,
+                    seller=hit.get('seller_name'),
+                    raw_text=json.dumps({
+                        'title': title,
+                        'price': actual_price,
+                        'is_buyable': is_buyable,
+                        'source': 'scraperapi',
+                    }),
+                    url=product_url or url,
+                    delivery_estimate=delivery_estimate
+                )
+
+            return ScrapingResult(
+                status='OUT_OF_STOCK',
+                raw_text=f'No matching "{display_term}" on Noon (via ScraperAPI)',
+                url=url
+            )
+
+        except Exception as e:
+            print(f"  Noon ScraperAPI search failed: {e}")
+            return None
 
     def _mobile_api_search(self, url, product_name):
         """
@@ -343,170 +436,9 @@ class NoonScraper(BaseScraper):
         except Exception:
             return None
 
-    def _proxy_html_search(self, url, product_name):
-        """Use the Cloudflare Worker proxy to fetch Noon's HTML search page,
-        then parse __NEXT_DATA__ embedded JSON for product data."""
-        if not PROXY_URL:
-            return None
-
-        try:
-            from bs4 import BeautifulSoup
-
-            # Fetch the HTML page through the proxy
-            response = self.proxy_get(url, headers=self.WEB_API_HEADERS, timeout=25)
-            if not response or response.status_code != 200:
-                return None
-
-            html = response.text
-            if not html or len(html) < 500:
-                return None
-
-            soup = BeautifulSoup(html, 'html.parser')
-
-            # Look for __NEXT_DATA__ which contains search results as embedded JSON
-            next_data = soup.find('script', id='__NEXT_DATA__')
-            if next_data:
-                try:
-                    data = json.loads(next_data.string)
-                    page_props = data.get('props', {}).get('pageProps', {})
-                    catalog = page_props.get('catalog', {}) or page_props.get('searchResult', {})
-                    hits = catalog.get('hits', []) or catalog.get('products', [])
-
-                    if hits:
-                        for hit in hits[:10]:
-                            title = hit.get('name', '') or hit.get('title', '')
-                            if product_name and not self._is_relevant(title, product_name):
-                                continue
-                            price = hit.get('sale_price') or hit.get('price')
-                            is_buyable = hit.get('is_buyable', True)
-
-                            product_url = hit.get('url', '')
-                            if product_url and not product_url.startswith('http'):
-                                product_url = f"https://www.noon.com/uae-en/{product_url}"
-
-                            delivery_estimate = None
-                            delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
-                            if delivery_text:
-                                delivery_estimate = delivery_text
-
-                            return ScrapingResult(
-                                status='IN_STOCK' if is_buyable and price else 'OUT_OF_STOCK',
-                                price=float(price) if price else None,
-                                product_title=title,
-                                seller=hit.get('seller_name'),
-                                raw_text=f'Noon proxy HTML/NEXT_DATA: {title}',
-                                url=product_url or url,
-                                delivery_estimate=delivery_estimate
-                            )
-
-                        # Had hits but none matched
-                        return ScrapingResult(
-                            status='OUT_OF_STOCK',
-                            raw_text=f'No matching product on Noon (proxy HTML)',
-                            url=url
-                        )
-                except (json.JSONDecodeError, KeyError):
-                    pass
-
-            # Check page text for stock signals
-            page_text = soup.get_text(' ', strip=True).lower()
-            if 'no results' in page_text or '0 results' in page_text:
-                return ScrapingResult(
-                    status='OUT_OF_STOCK',
-                    raw_text='No results on Noon (proxy HTML)',
-                    url=url
-                )
-
-            return None
-
-        except Exception as e:
-            print(f"  Noon proxy HTML search failed: {e}")
-            return None
-
-    def _proxy_api_search(self, url, product_name):
-        """Use the Cloudflare Worker proxy to reach Noon's mobile API.
-        This bypasses Render's datacenter IP being blocked by Noon.
-        """
-        if not PROXY_URL:
-            return None
-
-        try:
-            query = re.search(r'[?&]q=([^&]+)', url)
-            if not query:
-                if product_name:
-                    search_term = product_name.replace(' ', '+')
-                else:
-                    return None
-            else:
-                search_term = query.group(1)
-
-            api_url = f"{self.api_base}search/?q={search_term}&locale=en-ae"
-
-            # Route through proxy with mobile headers
-            response = self.proxy_get(api_url, headers=self.MOBILE_HEADERS, timeout=25)
-            if not response or response.status_code != 200:
-                return None
-
-            data = response.json()
-            hits = data.get('hits', [])
-            display_term = search_term.replace('+', ' ')
-
-            if not hits:
-                return ScrapingResult(
-                    status='OUT_OF_STOCK',
-                    raw_text=f'No results for "{display_term}" on Noon (via proxy)',
-                    url=url
-                )
-
-            # Find best match (same logic as mobile API)
-            for hit in hits[:10]:
-                title = hit.get('name', '') or hit.get('title', '')
-                if not self._is_relevant(title, product_name or display_term):
-                    continue
-
-                price = hit.get('sale_price') or hit.get('price')
-                offer_price = hit.get('offer_price')
-                actual_price = offer_price or price
-                is_buyable = hit.get('is_buyable', False)
-                stock_text = hit.get('stock_text', '')
-
-                status = 'IN_STOCK' if is_buyable else 'OUT_OF_STOCK'
-                if stock_text and ('few left' in stock_text.lower() or 'limited' in stock_text.lower()):
-                    status = 'LOW_STOCK'
-
-                product_url = hit.get('url', '')
-                if product_url and not product_url.startswith('http'):
-                    product_url = f"https://www.noon.com/uae-en/{product_url}"
-
-                delivery_estimate = None
-                delivery_text = hit.get('delivery_text', '') or hit.get('express_delivery_text', '')
-                if delivery_text:
-                    delivery_estimate = delivery_text
-
-                return ScrapingResult(
-                    status=status,
-                    price=float(actual_price) if actual_price else None,
-                    product_title=title,
-                    seller=hit.get('seller_name'),
-                    raw_text=json.dumps({
-                        'title': title,
-                        'price': actual_price,
-                        'is_buyable': is_buyable,
-                        'source': 'proxy',
-                    }),
-                    url=product_url or url,
-                    delivery_estimate=delivery_estimate
-                )
-
-            return ScrapingResult(
-                status='OUT_OF_STOCK',
-                raw_text=f'No matching "{display_term}" on Noon (via proxy)',
-                url=url
-            )
-
-        except Exception as e:
-            print(f"  Noon proxy search failed: {e}")
-            return None
+    # Note: CF Worker proxy and Vercel proxy methods removed.
+    # Noon blocks ALL cloud IPs (Cloudflare 520, AWS/Vercel timeout, Render timeout).
+    # ScraperAPI with residential proxies is the only working approach.
 
     def _check_product_page(self, url, product_name):
         """Check a specific Noon product page (non-search URL)."""
