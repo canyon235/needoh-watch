@@ -350,7 +350,7 @@ def self_ping():
 def background_checker(interval=43200):
     """Run stock checks in background.
     Checks all listings twice per day (every 12 hours) to conserve ScraperAPI credits.
-    No aggressive initial sweep — products show last known status or 'NOT LISTED'.
+    No aggressive initial sweep — products show last known status or 'Not Available'.
     Also self-pings to prevent Render free tier from spinning down the instance.
     """
     global bg_running
@@ -1518,7 +1518,7 @@ function renderProducts(products) {
             statusText = '🔍 PENDING CHECK';
         } else if (allUnknown) {
             statusClass = 'status-out-of-stock';
-            statusText = '🔍 NOT LISTED';
+            statusText = '🔍 Not Available';
         } else {
             statusClass = 'status-out-of-stock';
             statusText = '❌ OUT OF STOCK';
