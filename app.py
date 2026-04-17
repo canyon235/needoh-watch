@@ -665,6 +665,7 @@ DASHBOARD_HTML = r"""
             font-weight: 700;
             color: var(--dark-text);
             margin-bottom: 12px;
+            text-align: center;
         }
 
         .product-status {
