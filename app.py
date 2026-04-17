@@ -350,28 +350,44 @@ def self_ping():
 def background_checker(interval=43200):
     """Run stock checks in background.
     Checks all listings twice per day (every 12 hours) to conserve ScraperAPI credits.
-    No aggressive initial sweep — products show last known status or 'Not Available'.
+    On startup, keeps retrying until ALL products are checked (no more PENDING).
     Also self-pings to prevent Render free tier from spinning down the instance.
     """
     global bg_running
     bg_running = True
 
-    # --- Single initial check: one small batch on startup, then wait ---
     print(f"🔄 Background checker running (interval: {interval}s = {interval//3600}h)", flush=True)
-    print(f"  Credit-saving mode: checking ~68 listings per cycle, 2x per day", flush=True)
+    print(f"  Credit-saving mode: checking ~134 listings per cycle, 2x per day", flush=True)
 
-    ping_counter = 0
+    first_run = True
     while bg_running:
         try:
             checker.reset_stats()
-            # Check all listings in one go (68 products × 4 stores = 272, but due check filters)
             stats = checker.run_check_cycle(max_listings=300)
             print(f"  ✓ Stock check: {stats['checks']} checked, {stats['changes']} changes, {stats['errors']} errors", flush=True)
+
+            # On first run, retry unchecked products up to 3 times
+            if first_run and stats['checks'] > 0:
+                from data.database import get_listings_due_for_check
+                for retry in range(3):
+                    remaining = get_listings_due_for_check()
+                    # Only count listings that have never been checked
+                    unchecked = [l for l in remaining if l['last_checked_at'] is None]
+                    if not unchecked:
+                        print(f"  ✅ All listings checked!", flush=True)
+                        break
+                    print(f"  🔁 Retry {retry+1}: {len(unchecked)} listings still unchecked, retrying...", flush=True)
+                    time.sleep(5)  # Brief pause before retry
+                    checker.reset_stats()
+                    stats = checker.run_check_cycle(max_listings=300)
+                    print(f"  ✓ Retry check: {stats['checks']} checked, {stats['changes']} changes, {stats['errors']} errors", flush=True)
+                first_run = False
         except Exception as e:
             print(f"  ✗ Stock check error: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
 
         # Self-ping every 30 min to keep Render instance alive
-        ping_counter += 1
         for i in range(interval):
             if not bg_running:
                 break

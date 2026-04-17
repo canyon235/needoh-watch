@@ -4,6 +4,7 @@ Runs as the main scheduled job.
 """
 
 import time
+import threading
 from datetime import datetime
 
 from data.database import (
@@ -51,7 +52,7 @@ class StockChecker:
         print(f"\n[{timestamp}] Checking {len(batch)}/{total_due} due listings...", flush=True)
 
         for listing in batch:
-            self._check_one(listing)
+            self._check_one_with_timeout(listing, timeout=60)
             time.sleep(1)  # 1 second between requests — polite and reliable
 
         # Decay old sightings periodically
@@ -59,6 +60,46 @@ class StockChecker:
             self.offline_engine.decay_old_sightings()
 
         return self.stats
+
+    def _check_one_with_timeout(self, listing, timeout=60):
+        """Run _check_one with a hard timeout to prevent hung requests from blocking the cycle."""
+        store_name = listing.get('store_name', '?')
+        product_name = listing.get('canonical_name', '?')
+
+        result = [None]
+        error = [None]
+
+        def target():
+            try:
+                self._check_one(listing)
+            except Exception as e:
+                error[0] = e
+
+        t = threading.Thread(target=target, daemon=True)
+        t.start()
+        t.join(timeout=timeout)
+
+        if t.is_alive():
+            # Thread is still running — it hung
+            self.stats['errors'] += 1
+            print(f"  ⏱ TIMEOUT ({timeout}s) checking {product_name} @ {store_name} — skipping", flush=True)
+            # Mark as checked with UNKNOWN so it doesn't stay PENDING forever
+            try:
+                update_listing_status(
+                    listing_id=listing['id'],
+                    status='UNKNOWN',
+                    error=f'Timeout after {timeout}s'
+                )
+                log_check(
+                    listing_id=listing['id'],
+                    status='UNKNOWN',
+                    duration_ms=timeout * 1000,
+                    error=f'Timeout after {timeout}s'
+                )
+            except Exception:
+                pass
+        elif error[0]:
+            print(f"  ✗ Unexpected error checking {product_name} @ {store_name}: {error[0]}", flush=True)
 
     def _check_one(self, listing):
         """Check a single listing using HTTP scraping."""
