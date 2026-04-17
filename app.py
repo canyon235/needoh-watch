@@ -534,6 +534,8 @@ DASHBOARD_HTML = r"""
             transition: all 0.3s;
             border: 2px solid transparent;
             text-align: center;
+            display: flex;
+            flex-direction: column;
         }
 
         .product-card:hover {
@@ -592,6 +594,7 @@ DASHBOARD_HTML = r"""
             flex-direction: column;
             gap: 4px;
             margin-top: 8px;
+            flex: 1;
             font-size: 12px;
         }
 
@@ -625,7 +628,7 @@ DASHBOARD_HTML = r"""
         }
 
         .notify-inline {
-            margin-top: 10px;
+            margin-top: auto;
             padding: 8px;
             background: rgba(37, 211, 102, 0.06);
             border-radius: 8px;
