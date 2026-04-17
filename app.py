@@ -600,22 +600,40 @@ DASHBOARD_HTML = r"""
 
         .store-price-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             padding: 4px 8px;
             border-radius: 6px;
             background: rgba(248, 244, 255, 0.5);
             text-align: left;
+            gap: 4px;
+            flex-wrap: nowrap;
         }
 
         .store-price-row .store-label {
             font-weight: 600;
             color: var(--light-text);
+            white-space: nowrap;
+            font-size: 12px;
+            min-width: 0;
+            flex-shrink: 0;
+        }
+
+        .store-price-row .delivery-info {
+            font-size: 9px;
+            color: var(--light-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            min-width: 0;
         }
 
         .store-price-row .store-price-val {
             font-weight: 800;
             color: var(--pink);
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-size: 12px;
         }
 
         .store-price-row .store-icon {
