@@ -458,6 +458,62 @@ DASHBOARD_HTML = r"""
             font-weight: 500;
         }
 
+        /* Filter Bar */
+        .filter-bar {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 16px 24px 0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 2px solid var(--primary);
+            background: var(--white);
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+        .filter-btn.active {
+            background: var(--primary);
+            color: var(--white);
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+        }
+        .filter-select {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 2px solid #e5e7eb;
+            background: var(--white);
+            color: var(--text);
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            min-width: 200px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .filter-count {
+            font-size: 12px;
+            color: var(--light-text);
+            margin-left: auto;
+        }
+
         /* Container */
         .container {
             max-width: 1000px;
@@ -735,6 +791,11 @@ DASHBOARD_HTML = r"""
         }
 
         .status-out-of-stock {
+            background: linear-gradient(135deg, rgba(253, 224, 71, 0.3) 0%, rgba(250, 204, 21, 0.15) 100%);
+            color: #854D0E;
+        }
+
+        .status-not-available {
             background: linear-gradient(135deg, rgba(255, 107, 157, 0.2) 0%, rgba(255, 138, 101, 0.1) 100%);
             color: #7F1D1D;
         }
@@ -1117,6 +1178,19 @@ DASHBOARD_HTML = r"""
                 padding: 16px;
             }
 
+            .filter-bar {
+                padding: 12px 16px 0;
+                gap: 8px;
+            }
+            .filter-select {
+                min-width: 150px;
+                flex: 1;
+            }
+            .filter-count {
+                width: 100%;
+                text-align: center;
+            }
+
             .email-input-group {
                 flex-direction: column;
             }
@@ -1198,6 +1272,15 @@ DASHBOARD_HTML = r"""
     <div class="header">
         <h1>🎯 NeeDoh Watch UAE</h1>
         <p>Find your favorite fidget toys across all stores!</p>
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn" id="filterAll" onclick="setFilter('all')">All Toys</button>
+        <button class="filter-btn" id="filterAvailable" onclick="setFilter('available')">Available Only</button>
+        <select class="filter-select" id="productSelect" onchange="jumpToProduct(this.value)">
+            <option value="">Jump to a toy...</option>
+        </select>
+        <span class="filter-count" id="filterCount"></span>
     </div>
 
     <div class="container">
@@ -1396,9 +1479,61 @@ const CARD_COLORS = ['pink', 'purple', 'turquoise', 'coral', 'lime'];
 let colorIndex = 0;
 
 let allProducts = [];
+let currentFilter = 'all';
+
+// Filter logic
+function setFilter(filter) {
+    currentFilter = filter;
+    document.getElementById('filterAll').classList.toggle('active', filter === 'all');
+    document.getElementById('filterAvailable').classList.toggle('active', filter === 'available');
+    document.getElementById('productSelect').value = '';
+    applyFilter();
+}
+
+function applyFilter() {
+    let filtered = allProducts;
+    if (currentFilter === 'available') {
+        filtered = allProducts.filter(p => {
+            const activeStores = ['Amazon', 'Noon'];
+            const storeListings = (p.store_listings || []).filter(sl => activeStores.some(s => sl.store_name.includes(s)));
+            return storeListings.some(sl => sl.stock_status === 'IN_STOCK');
+        });
+    }
+    renderProducts(filtered);
+    const countEl = document.getElementById('filterCount');
+    if (currentFilter === 'available') {
+        countEl.textContent = `Showing ${filtered.length} of ${allProducts.length} toys`;
+    } else {
+        countEl.textContent = `${allProducts.length} toys`;
+    }
+}
+
+function jumpToProduct(val) {
+    if (!val) { setFilter('all'); return; }
+    const product = allProducts.find(p => String(p.id) === val);
+    if (product) {
+        currentFilter = 'single';
+        document.getElementById('filterAll').classList.remove('active');
+        document.getElementById('filterAvailable').classList.remove('active');
+        renderProducts([product]);
+        document.getElementById('filterCount').textContent = `Showing 1 of ${allProducts.length} toys`;
+    }
+}
+
+function populateProductDropdown(products) {
+    const select = document.getElementById('productSelect');
+    const current = select.value;
+    select.innerHTML = '<option value="">Jump to a toy...</option>';
+    products.sort((a, b) => a.canonical_name.localeCompare(b.canonical_name)).forEach(p => {
+        const name = p.canonical_name + (p.variant ? ` (${p.variant})` : '');
+        select.innerHTML += `<option value="${p.id}">${name}</option>`;
+    });
+    select.value = current;
+}
 
 // Init on page load
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('filterAll').classList.add('active');
     refreshDashboard();
     setInterval(refreshDashboard, 60000); // Auto-refresh every 60 seconds
 });
@@ -1438,8 +1573,9 @@ function toast(msg) {
 async function refreshDashboard() {
     const data = await api('/api/dashboard');
     allProducts = data.products;
-    renderProducts(data.products);
+    populateProductDropdown(data.products);
     populateSelects(data.products);
+    applyFilter();
 }
 
 // Get image URL for product — prefers longest matching key
@@ -1517,11 +1653,11 @@ function renderProducts(products) {
             statusClass = 'status-checking';
             statusText = '🔍 PENDING CHECK';
         } else if (allUnknown) {
-            statusClass = 'status-out-of-stock';
-            statusText = '🔍 Not Available';
+            statusClass = 'status-not-available';
+            statusText = '❌ NOT AVAILABLE';
         } else {
             statusClass = 'status-out-of-stock';
-            statusText = '❌ OUT OF STOCK';
+            statusText = '⚠️ OUT OF STOCK';
         }
 
         // Store logo URLs
