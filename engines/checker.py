@@ -36,24 +36,31 @@ class StockChecker:
             'alerts': 0,
         }
 
-    def run_check_cycle(self):
-        """Run one complete check cycle for all due listings.
-        All stores use HTTP scraping with cloudscraper for anti-bot bypass.
+    def run_check_cycle(self, max_listings=20):
+        """Run one check cycle for a batch of due listings.
+        Processes up to max_listings per cycle to keep cycles short (~3 min).
+        With 3-minute intervals, all ~276 listings get checked within ~45 min.
+        Prioritizes: IN_STOCK with no price > never-checked > oldest-checked.
         """
         listings = get_listings_due_for_check()
 
         if not listings:
             return self.stats
 
-        timestamp = datetime.utcnow().strftime('%H:%M:%S')
-        print(f"\n[{timestamp}] Checking {len(listings)} listings...", flush=True)
+        # Batch: only check up to max_listings per cycle
+        batch = listings[:max_listings]
+        total_due = len(listings)
 
-        for listing in listings:
+        timestamp = datetime.utcnow().strftime('%H:%M:%S')
+        print(f"\n[{timestamp}] Checking {len(batch)}/{total_due} due listings...", flush=True)
+
+        for listing in batch:
             self._check_one(listing)
             time.sleep(1)  # 1 second between requests — polite and reliable
 
-        # Decay old sightings
-        self.offline_engine.decay_old_sightings()
+        # Decay old sightings periodically
+        if self.stats['checks'] > 0:
+            self.offline_engine.decay_old_sightings()
 
         return self.stats
 

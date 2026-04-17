@@ -121,13 +121,13 @@ class NoonScraper(BaseScraper):
             # Route through ScraperAPI — retry on 499 (timeout/rate limit on free tier)
             scraper_url = f"https://api.scraperapi.com/?api_key={SCRAPER_API_KEY}&url={quote_plus(api_url)}"
 
-            max_retries = 2
+            max_retries = 1
             response = None
             for attempt in range(max_retries + 1):
-                response = requests.get(scraper_url, timeout=70)
+                response = requests.get(scraper_url, timeout=45)
                 if response.status_code == 499 and attempt < max_retries:
-                    wait = 3 + attempt * 2  # 3s, 5s
-                    print(f"  Noon ScraperAPI 499 — retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                    wait = 3
+                    print(f"  Noon ScraperAPI 499 — retrying in {wait}s")
                     time.sleep(wait)
                     continue
                 break

@@ -19,6 +19,7 @@ import json
 import threading
 import time
 import argparse
+import requests as http_requests
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -61,6 +62,12 @@ def dashboard():
 
 
 # ─── API Endpoints ───
+
+@app.route('/api/health')
+def api_health():
+    """Health check endpoint — also used for self-ping to keep Render alive."""
+    return jsonify({'status': 'ok', 'bg_running': bg_running})
+
 
 @app.route('/api/dashboard')
 def api_dashboard():
@@ -332,18 +339,36 @@ def api_test_email():
 
 # ─── Background checker ───
 
-def background_checker(interval=900):
-    """Run stock checks in background."""
+def self_ping():
+    """Ping our own health endpoint to prevent Render free tier from spinning down."""
+    try:
+        port = int(os.environ.get('PORT', 5000))
+        http_requests.get(f'http://localhost:{port}/api/health', timeout=5)
+    except Exception:
+        pass
+
+def background_checker(interval=180):
+    """Run stock checks in background.
+    Uses short intervals (3 min) with batch limits to steadily process all products.
+    Also self-pings to prevent Render free tier from spinning down the instance.
+    """
     global bg_running
     bg_running = True
     print(f"🔄 Background checker started (interval: {interval}s)")
+    ping_counter = 0
     while bg_running:
         try:
             checker.reset_stats()
             stats = checker.run_check_cycle()
-            print(f"  ✓ Background check: {stats['checks']} checked, {stats['changes']} changes")
+            print(f"  ✓ Background check: {stats['checks']} checked, {stats['changes']} changes, {stats['errors']} errors")
         except Exception as e:
             print(f"  ✗ Background check error: {e}")
+
+        # Self-ping every 5 cycles (~15 min) to keep Render instance alive
+        ping_counter += 1
+        if ping_counter % 5 == 0:
+            self_ping()
+
         for _ in range(interval):
             if not bg_running:
                 break
@@ -356,7 +381,7 @@ def start_background():
     global bg_thread, bg_running
     if bg_running:
         return jsonify({'status': 'already_running'})
-    interval = request.json.get('interval', 900) if request.json else 900
+    interval = request.json.get('interval', 180) if request.json else 180
     bg_thread = threading.Thread(target=background_checker, args=(interval,), daemon=True)
     bg_thread.start()
     return jsonify({'status': 'started', 'interval': interval})
@@ -1761,9 +1786,9 @@ if __name__ == '__main__':
         print(f"  ⚠ Database migration error: {e}")
 
     # Always start background checker — this is a monitoring tool
-    bg_thread = threading.Thread(target=background_checker, args=(900,), daemon=True)
+    bg_thread = threading.Thread(target=background_checker, args=(180,), daemon=True)
     bg_thread.start()
-    print("  ✓ Background checker started (10 min cycle)")
+    print("  ✓ Background checker started (3 min cycle, 20 listings/batch)")
 
     print(f"\n{'='*50}")
     print(f"  🎯 NeeDoh Watch UAE")
