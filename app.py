@@ -1251,66 +1251,90 @@ DASHBOARD_HTML = r"""
 // Product image mapping — boxed/packaged images preferred
 // Source: birdinhand.com (official Schylling distributor), with fallbacks to retailer CDNs
 const PRODUCT_IMAGES = {
-    // Packaging images from birdinhand.com (Pkg/PKG in filename = boxed image)
-    'Classic':        'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_1070.jpg',
+    // === Packaging/box images — needoh.org, birdinhand, myneedoh.com ===
+    // IMPORTANT: More specific names MUST come before shorter ones
+    // (e.g. "Nice Cube Swirl" before "Nice Cube") because matching uses .includes()
+
+    // Nice Cube variants — specific names first to avoid false matches
+    'Nice Cube Swirl':'https://needoh.org/images/needoh-nice-cube-swirl1.jpg',
+    'Nice Cube Glow': 'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GNCBND-_NeeDoh-Nice-Cube-Glow-Package-Front-Pink.jpg',
     'Nice Cube':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/NCBND-NeeDoh-Nice-Cube-Pkg-3QR-Blue-web.jpg',
+
+    // Super variants — specific names first
+    'Super NeeDoh Cool':'https://needoh.org/images/needoh-giant-coolcats1.jpg',
+    'Super NeeDoh':   'https://needoh.org/images/needoh-giant-classic1.jpg',
+    'Super Marble':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/ScreenShot2022-08-15at1.29.56PM.png',
+
+    // Nice Berg variants — specific first
+    'Nice Berg Swirl':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SWSNCBND-NeeDoh-Swirl-Nice-Berg-Pkg-3Q-Right_1.jpg',
+    'Nice Berg':      'https://needoh.org/images/needoh-giant-niceberg1.jpg',
+
+    // Fuzz Ball variants — specific first
+    'Fuzz Ball Teenie':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/FZBTND-NeeDoh-Teenie-FuzzBall-Product-Group.jpg',
+    'Fuzz Ball':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SFZBND-NeeDoh-Super-FuzzBall-Product-Group.jpg',
+
+    // Glow in the Dark before other "Glow" matches
+    'Glow in the Dark':'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GND-Nee-Doh-Glow-in-the-Dark-PKG-3Q-Right-web.jpg',
+
+    // Dohnut variants — specific first
+    'Dohnut Jelly':   'https://needoh.org/images/needoh-dohnuts1.jpg',
+    'Dohnuts':        'https://needoh.org/images/needoh-dohnuts1.jpg',
+
+    // Groovy variants — specific first
+    'Groovy Shroom':  'https://sterlingtoystore.com/cdn/shop/files/Groovy_Shroom_Nee_Doh.png?v=1722627251&width=800',
+    'Groovy Fruit':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GFND-Nee-Doh-Groovy-Fruit-Group1-web-1024x1024.jpg',
+    'Groovy Jewel':   'https://m.media-amazon.com/images/I/61i+r+BmNjL._AC_UL320_.jpg',
+
+    // Snow variants — specific first
+    'Snowball':       'https://needoh.org/images/needoh-snowball-crunch1.jpg',
+    'Snow Globe':     'https://littleshop.toys/cdn/shop/files/needoh-snow-globe-sqmsg24-791759.jpg?v=1730760880&width=800',
+
+    // Color Change before other "Color" matches
+    'Color Change':   'https://needoh.org/images/needoh-color-changing1.jpg',
+
+    // All other products (alphabetical)
+    'Classic':        'https://needoh.org/images/needoh-classic-groovy-glob1.jpg',
     'Gummy Bear':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GBND-NeeDoh-Gummy-Bear-Pkg-3Q-Right-Pink-web.jpg',
-    'Cool Cats':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/CCND-Nee-Doh-Cool-Cats-Item-Orange2020-3Q-Left-web.jpg',
-    'Gumdrop':        'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GDND-NeeDoh-Gumdrop-Pkg-3QR-Orange-web.jpg',
+    'Cool Cats':      'https://needoh.org/images/needoh-coolcats1.jpg',
+    'Gumdrop':        'https://needoh.org/images/needoh-gumdrop1.jpg',
     'Dream Drop':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/DRDND_Image1.jpg',
     'Mac N Squeeze':  'https://myneedoh.com/wp-content/uploads/2024/10/nd10.jpg',
     'Ramen':          'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/RNL-Noodlies-Ramen-Hands-Stretch-web.jpg',
-    'Dig It Pig':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_6396.jpg',
-    'Shaggy':         'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_4519.jpg',
-    'Fuzz Ball':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SFZBND-NeeDoh-Super-FuzzBall-Product-Group.jpg',
-    'Stardust':       'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/SDSB-Stardust-Shimmer-Nee-Doh-Lifestyle-web.jpg',
-    'Crystal':        'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/CSB-Crystal-Squeeze-Nee-Doh-Group-web.jpg',
+    'Dig It Pig':     'https://needoh.org/images/needoh-digitpig1.jpg',
+    'Shaggy':         'https://myneedoh.com/wp-content/uploads/2024/10/nd11.jpg',
+    'Stardust':       'https://myneedoh.com/wp-content/uploads/2024/10/nd7.jpg',
+    'Crystal':        'https://myneedoh.com/wp-content/uploads/2024/10/nd8.jpg',
     'Marbleez':       'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/MRBND-NeeDoh-Marbleez-Group-web.jpg',
-    'Groovy Fruit':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GFND-Nee-Doh-Groovy-Fruit-Group1-web-1024x1024.jpg',
-    'Snowball':       'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SNBC-Snow-Ball-Crunch-Item-web.jpg',
-    'Glow in the Dark':'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GND-Nee-Doh-Glow-in-the-Dark-PKG-3Q-Right-web.jpg',
-    'Dohnuts':        'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_6374_6663c95a-f7ce-4105-bb38-330d8d5f5c95.jpg',
-    'Nice-Sicle':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/NIND_Image4.jpg',
-    'Color Change':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/CCSQ-Color-Change-Nee-Doh-PKG-3Q-Right-Blue-web.jpg',
-    'Dohjees':        'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/DJ-Dohjees-Group2-web.jpg',
+    'Nice-Sicle':     'https://needoh.org/images/needoh-nicesicle1.jpg',
+    'Dohjees':        'https://myneedoh.com/wp-content/uploads/2025/12/81.jpg',
     'Panic Pete':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/NDPPST-NeeDoh-Panic-Pete-Squeeze-Green2-web.jpg',
     'Chickadeedoos':  'https://cdn11.bigcommerce.com/s-65gzldhg/images/stencil/1280x1280/products/8565/11515/chickadeedoos_blue_CDDND24__99485.1705010497.jpg?c=2',
-    'Jelly Squish':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/JSND-Jelly-Squish-Nee-Doh-Product-Purplecopy.jpg',
-    'Super NeeDoh':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_4378.jpg',
+    'Jelly Squish':   'https://needoh.org/images/needoh-jellyfish1.jpg',
     'Teenie':         'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/TSNDA_Image1.jpg',
-    // New products — packaging images from birdinhand where available
     'Peace O Cake':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/POCND_Image2.jpg',
     'Dippin Dazzler': 'https://target.scene7.com/is/image/Target/GUEST_893acc13-f899-4ca8-bc3b-2befce010ce1?wid=800&hei=800&fmt=pjpeg',
     'Jelly Hops':     'https://m.media-amazon.com/images/I/51IsUS2WJrL._AC_UL320_.jpg',
-    'Nice Ice Baby':  'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/Screenshot2025-06-14at6.22.53PM.png',
+    'Nice Ice Baby':  'https://needoh.org/images/needoh-nice-ice-baby1.jpg',
     'Nice Cream Cone':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/NCCND_Image2.jpg',
-    'Mello Mallo':    'https://target.scene7.com/is/image/Target/GUEST_9e174210-e232-44cf-b838-4dfc7465922e?wid=800&hei=800&fmt=pjpeg',
-    'Nice Berg':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/Screenshot2025-06-14at5.50.36PM.png',
+    'Mello Mallo':    'https://needoh.org/images/needoh-mello-mallo1.jpg',
     'Booper':         'https://www.thetoyfolks.com/cdn/shop/products/schyllingneedohbooper.webp?v=1679652943&width=800',
-    'Funky Pups':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/FPTND-Teenie-NeeDoh-Funky-Pups-Pkg-3QR-web.jpg',
+    'Funky Pups':     'https://needoh.org/images/needoh-funkypup1.jpg',
     'Hot Shot':       'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/HSTND-NeeDoh-Hot-Shots-Product-Football-Hand.jpg',
     'Squeezza Pizza': 'https://www.rocketcitytoys.com/cdn/shop/files/SQZND.jpg?v=1766957174&width=800',
     'Atomic':         'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/AtomicNeeDoh02.jpg',
     'Sploot Splat':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/thesplootsplat.jpg',
-    'Lava Squish':    'https://images-na.ssl-images-amazon.com/images/I/61SJ8wJ8C2L._AC_SY355_.jpg',
-    'Advent Calendar':'https://www.rocketcitytoys.com/cdn/shop/files/Schylling-NeeDoh-Advent-Calendar-24-Days-of-Surprise-Toys-Children-Ages-3-and-up_966af645-beb4-4634-a0a3-787a7be57aff.caf173db7f857e82210c27c9c6ef197a.jpg?v=1763756814&width=800',
-    'Cube Swirl':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/needohnicecubcomposite.png',
-    'Marble Egg':     'https://target.scene7.com/is/image/Target/GUEST_6f7a2410-14ff-4fec-9da0-72c4115472d6?wid=800&hei=800&fmt=pjpeg',
-    'Wonder Waves':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/WWFZBND__7.jpg',
-    'Dohnut Jelly':   'https://www.rocketcitytoys.com/cdn/shop/files/download-2024-03-13t104529990.webp?v=1737132235&width=800',
-    'Fuzz Ball Teenie':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/FZBTND-NeeDoh-Teenie-FuzzBall-Product-Group.jpg',
-    'Groovy Shroom':  'https://sterlingtoystore.com/cdn/shop/files/Groovy_Shroom_Nee_Doh.png?v=1722627251&width=800',
+    'Lava Squish':    'https://www.junioredition.com/cdn/shop/files/Needoh-AW24-Lava-Squish-And-Flow-Squishy-Toy-4.jpg?v=1728899247&width=800',
+    'Advent Calendar':'https://needoh.org/images/needoh-advent-calendar1.jpg',
+    'Marble Egg':     'https://needoh.org/images/needoh-egg1.jpg',
+    'Wonder Waves':   'https://needoh.org/images/needoh-fuzzball-wonderwaves1.jpg',
+    'Flower Power':   'https://needoh.org/images/needoh-fuzzball-flowerpower1.png',
     'Squeezy Peezy':  'https://www.thestorebeforetime.com/cdn/shop/files/8D5C32F6-FB36-4301-A84B-F5C488956414.png?v=1719098098&width=800',
     'Happy Snappy':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/IMG_6400_49fe78f7-3461-4f67-bba4-f12e0cc38be1.jpg',
     'Squeeze Hearts': 'https://m.media-amazon.com/images/I/71iFhK6L9DL._AC_UL320_.jpg',
     'Ripples':        'https://www.rocketcitytoys.com/cdn/shop/files/RSPND_1.jpg?v=1771832332&width=800',
-    'Snow Globe':     'https://littleshop.toys/cdn/shop/files/needoh-snow-globe-sqmsg24-791759.jpg?v=1730760880&width=800',
-    'Super NeeDoh Cool':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/CCSPND-Super-NeeDoh-CoolCats-Pkg-3Q-Right-web.jpg',
-    'Flower Power':   'https://www.rocketcitytoys.com/cdn/shop/files/FPFZBND__9.jpg?v=1747105213&width=800',
     'Good Vibes':     'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GVND-Nee-Doh-Good-Vibes-Only-Package-StayGroovy-3Q-Right.jpg',
     'Wild Cats':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/WCFZBND_Image2.jpg',
-    'Groovy Jewel':   'https://m.media-amazon.com/images/I/61i+r+BmNjL._AC_UL320_.jpg',
-    'Cloud Pleaser':  'https://m.media-amazon.com/images/I/71JXzveyFQL._AC_UL320_.jpg',
+    'Cloud Pleaser':  'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SFZBND-NeeDoh-Super-FuzzBall-Product-Group.jpg',
     'Bubble Glob':    'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/BTSQ-Bubble-Glob-Nee-Doh-Lifestyle-web.jpg',
     'Baby Boos':      'https://www.rocketcitytoys.com/cdn/shop/files/NDWBB26.jpg?v=1766956087&width=800',
     'Dohzee':         'https://m.media-amazon.com/images/I/71oxTqWOm+L._AC_UL320_.jpg',
@@ -1318,38 +1342,44 @@ const PRODUCT_IMAGES = {
     'Sugar Skull':    'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SSCCND-NeeDoh-SugarSkull-CoolCats-PKG-3Q-Right-White2.jpg',
     'Cool Cane':      'https://www.curiousmindsbusybags.com/cdn/shop/files/NEEDOHEGGHUNT1.jpg?v=1771378256',
     'Golden Egg':     'https://www.curiousmindsbusybags.com/cdn/shop/files/NEEDOHEGGHUNT1.jpg?v=1771378256',
-    'Cube Glow':      'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/GNCBND-_NeeDoh-Nice-Cube-Glow-Package-Front-Pink.jpg',
     'Stickums':       'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/STUM-NeeDoh-Stickums-Hand5-web.jpg',
     'Swirl':          'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/SWND-Swirl-Nee-Doh-Item-GreenLime-web.jpg',
     'Gobs of Globs':  'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/GGTND-Gobs-of-Globs-Pkg-3Q-Left-web.jpg',
-    'Nice Berg Swirl':'https://cdn.shopify.com/s/files/1/0069/4009/8629/files/SWSNCBND-NeeDoh-Swirl-Nice-Berg-Pkg-3Q-Right_1.jpg',
-    'Super Marble':   'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/ScreenShot2022-08-15at1.29.56PM.png',
     'Noodlies':       'https://cdn.shopify.com/s/files/1/0069/4009/8629/products/NL-Noodlies-Lifestyle-web.jpg',
 };
 
-// Fallback emojis if image fails to load — all 26 products
+// Fallback emojis if image fails to load
 const PRODUCT_EMOJIS = {
-    'Classic': '🫠', 'Nice Cube': '🧊', 'Gummy Bear': '🐻', 'Cool Cats': '🐱',
+    'Nice Cube Swirl': '🌀', 'Nice Cube Glow': '✨', 'Nice Cube': '🧊',
+    'Super NeeDoh Cool': '🐱', 'Super NeeDoh': '💪', 'Super Marble': '🔮',
+    'Nice Berg Swirl': '🌀', 'Nice Berg': '🏔️',
+    'Fuzz Ball Teenie': '🧸', 'Fuzz Ball': '🧸',
+    'Dohnut Jelly': '🍩', 'Dohnuts': '🍩',
+    'Glow in the Dark': '🌙', 'Groovy Shroom': '🍄',
+    'Groovy Fruit': '🍇', 'Groovy Jewel': '💎',
+    'Snow Globe': '🎄', 'Snowball': '❄️',
+    'Color Change': '🎨',
+    'Classic': '🫠', 'Gummy Bear': '🐻', 'Cool Cats': '🐱',
     'Gumdrop': '🍬', 'Dream Drop': '💧', 'Mac N Squeeze': '🧀', 'Ramen': '🍜',
-    'Dig It Pig': '🐷', 'Shaggy': '🦁', 'Fuzz Ball': '🧸', 'Stardust': '⭐',
-    'Crystal': '💎', 'Marbleez': '🔮', 'Groovy Fruit': '🍇', 'Snowball': '❄️',
-    'Glow in the Dark': '🌙', 'Dohnuts': '🍩', 'Nice-Sicle': '🍦', 'Color Change': '🎨',
+    'Dig It Pig': '🐷', 'Shaggy': '🦁', 'Stardust': '⭐',
+    'Crystal': '💎', 'Marbleez': '🔮',
+    'Nice-Sicle': '🍦',
     'Dohjees': '🎲', 'Panic Pete': '😱', 'Chickadeedoos': '🐣', 'Jelly Squish': '🍮',
-    'Super NeeDoh': '💪', 'Teenie': '🎯',
+    'Teenie': '🎯',
     'Peace O Cake': '🎂', 'Dippin Dazzler': '🥚', 'Jelly Hops': '🐰',
     'Nice Ice Baby': '🧊', 'Nice Cream Cone': '🍦', 'Mello Mallo': '🍡',
-    'Nice Berg': '🏔️', 'Booper': '👃', 'Funky Pups': '🐶', 'Hot Shot': '🏀',
+    'Booper': '👃', 'Funky Pups': '🐶', 'Hot Shot': '🏀',
     'Squeezza Pizza': '🍕', 'Atomic': '⚛️', 'Sploot Splat': '💥',
-    'Lava Squish': '🌋', 'Advent Calendar': '🎄', 'Cube Swirl': '🌀',
-    'Marble Egg': '🥚', 'Wonder Waves': '🌊', 'Dohnut Jelly': '🍩',
-    'Groovy Shroom': '🍄', 'Squeezy Peezy': '😊', 'Happy Snappy': '🐊',
-    'Squeeze Hearts': '💖', 'Ripples': '🌊', 'Snow Globe': '🎄',
-    'Super NeeDoh Cool': '🐱', 'Flower Power': '🌸', 'Good Vibes': '💝',
-    'Wild Cats': '🐾', 'Groovy Jewel': '💎', 'Cloud Pleaser': '☁️',
+    'Lava Squish': '🌋', 'Advent Calendar': '🎄',
+    'Marble Egg': '🥚', 'Wonder Waves': '🌊',
+    'Squeezy Peezy': '😊', 'Happy Snappy': '🐊',
+    'Squeeze Hearts': '💖', 'Ripples': '🌊',
+    'Flower Power': '🌸', 'Good Vibes': '💝',
+    'Wild Cats': '🐾', 'Cloud Pleaser': '☁️',
     'Bubble Glob': '🫧', 'Baby Boos': '👶', 'Dohzee': '😴',
     'Glowy Ghost': '👻', 'Sugar Skull': '💀', 'Cool Cane': '🍬',
-    'Golden Egg': '🥇', 'Cube Glow': '✨', 'Color Change': '🎨',
-    'Stickums': '🪄', 'Swirl': '🌀',
+    'Golden Egg': '🥇', 'Stickums': '🪄', 'Swirl': '🌀',
+    'Gobs of Globs': '🫠', 'Noodlies': '🍜',
 };
 
 // Color rotation for product cards
@@ -1403,20 +1433,30 @@ async function refreshDashboard() {
     populateSelects(data.products);
 }
 
-// Get image URL for product
+// Get image URL for product — prefers longest matching key
 function getImageUrl(productName) {
+    let bestMatch = null;
+    let bestLen = 0;
     for (const [name, url] of Object.entries(PRODUCT_IMAGES)) {
-        if (productName.includes(name)) return url;
+        if (productName.includes(name) && name.length > bestLen) {
+            bestMatch = url;
+            bestLen = name.length;
+        }
     }
-    return null;
+    return bestMatch;
 }
 
-// Get emoji fallback for product
+// Get emoji fallback for product — prefers longest matching key
 function getEmoji(productName) {
+    let bestMatch = '🎯';
+    let bestLen = 0;
     for (const [name, emoji] of Object.entries(PRODUCT_EMOJIS)) {
-        if (productName.includes(name)) return emoji;
+        if (productName.includes(name) && name.length > bestLen) {
+            bestMatch = emoji;
+            bestLen = name.length;
+        }
     }
-    return '🎯';
+    return bestMatch;
 }
 
 // Get card color
