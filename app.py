@@ -1218,6 +1218,14 @@ const PRODUCT_EMOJIS = {
     'Squeezza Pizza': '🍕', 'Atomic': '⚛️', 'Sploot Splat': '💥',
     'Lava Squish': '🌋', 'Advent Calendar': '🎄', 'Cube Swirl': '🌀',
     'Marble Egg': '🥚', 'Wonder Waves': '🌊', 'Dohnut Jelly': '🍩',
+    'Groovy Shroom': '🍄', 'Squeezy Peezy': '😊', 'Happy Snappy': '🐊',
+    'Squeeze Hearts': '💖', 'Ripples': '🌊', 'Snow Globe': '🎄',
+    'Super NeeDoh Cool': '🐱', 'Flower Power': '🌸', 'Good Vibes': '💝',
+    'Wild Cats': '🐾', 'Groovy Jewel': '💎', 'Cloud Pleaser': '☁️',
+    'Bubble Glob': '🫧', 'Baby Boos': '👶', 'Dohzee': '😴',
+    'Glowy Ghost': '👻', 'Sugar Skull': '💀', 'Cool Cane': '🍬',
+    'Golden Egg': '🥇', 'Cube Glow': '✨', 'Color Change': '🎨',
+    'Stickums': '🪄', 'Swirl': '🌀',
 };
 
 // Color rotation for product cards

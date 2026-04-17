@@ -101,6 +101,52 @@ PRODUCTS = [
     {"canonical_name": "NeeDoh Dohnut Jelly Squeeze", "variant": None, "aliases": ["Dohnut Jelly Squeeze", "Jelly Donut", "Dohnut Jelly"]},
     # 45 - Fuzz Ball Teenie
     {"canonical_name": "NeeDoh Fuzz Ball Teenie", "variant": None, "aliases": ["Fuzz Ball Teenie", "Teenie Fuzz Ball", "Mini Fuzz Ball"]},
+    # 46 - Groovy Shroom
+    {"canonical_name": "NeeDoh Groovy Shroom", "variant": None, "aliases": ["Groovy Shroom", "Mushroom NeeDoh", "Nee Doh Shroom"]},
+    # 47 - Squeezy Peezy
+    {"canonical_name": "NeeDoh Squeezy Peezy", "variant": None, "aliases": ["Squeezy Peezy", "Squeezy Peasy", "Nee Doh Squeezy Peezy"]},
+    # 48 - Happy Snappy
+    {"canonical_name": "NeeDoh Happy Snappy", "variant": None, "aliases": ["Happy Snappy", "Nee Doh Happy Snappy", "Snappy NeeDoh"]},
+    # 49 - Squeeze Hearts
+    {"canonical_name": "NeeDoh Squeeze Hearts", "variant": None, "aliases": ["Squeeze Hearts", "Color Change Heart", "Sparkle Squeeze Hearts"]},
+    # 50 - Super NeeDoh Ripples
+    {"canonical_name": "Super NeeDoh Ripples", "variant": None, "aliases": ["Super Ripples", "Ripples NeeDoh", "Super NeeDoh Ripples"]},
+    # 51 - Snow Globe
+    {"canonical_name": "NeeDoh Snow Globe", "variant": None, "aliases": ["Snow Globe", "Squishmas Snow Globe", "Christmas Snow Globe", "Squish N Snow Globe"]},
+    # 52 - Super Cool Cats
+    {"canonical_name": "Super NeeDoh Cool Cats", "variant": None, "aliases": ["Super Cool Cats", "Cool Cats Super", "Jumbo Cool Cats"]},
+    # 53 - Fuzz Ball Flower Power
+    {"canonical_name": "NeeDoh Fuzz Ball Flower Power", "variant": None, "aliases": ["Flower Power", "Fuzz Ball Flower Power", "Flower Fuzz Ball"]},
+    # 54 - Good Vibes Only Heart
+    {"canonical_name": "NeeDoh Good Vibes Only Heart", "variant": None, "aliases": ["Good Vibes Only", "Good Vibes Heart", "Heart NeeDoh"]},
+    # 55 - Fuzz Ball Wild Cats
+    {"canonical_name": "NeeDoh Fuzz Ball Wild Cats", "variant": None, "aliases": ["Fuzz Ball Wild Cats", "Wild Cats Fuzz Ball", "Fuzzy Cats"]},
+    # 56 - Groovy Jewel
+    {"canonical_name": "NeeDoh Groovy Jewel", "variant": None, "aliases": ["Groovy Jewel", "Jewel NeeDoh", "Globby Jewel"]},
+    # 57 - Cloud Pleaser
+    {"canonical_name": "NeeDoh Cloud Pleaser", "variant": None, "aliases": ["Cloud Pleaser", "Cloud NeeDoh", "Nee Doh Cloud"]},
+    # 58 - Bubble Glob
+    {"canonical_name": "NeeDoh Bubble Glob", "variant": None, "aliases": ["Bubble Glob", "Bubble NeeDoh", "Nee Doh Bubble"]},
+    # 59 - Baby Boos
+    {"canonical_name": "NeeDoh Baby Boos", "variant": None, "aliases": ["Baby Boos", "Baby Boo NeeDoh", "Nee Doh Baby Boos"]},
+    # 60 - Dohzee
+    {"canonical_name": "NeeDoh Dohzee", "variant": None, "aliases": ["Dohzee", "Dozy NeeDoh", "Nee Doh Dohzee"]},
+    # 61 - Glowy Ghost
+    {"canonical_name": "NeeDoh Glowy Ghost", "variant": None, "aliases": ["Glowy Ghost", "Glow Ghost", "Ghost NeeDoh"]},
+    # 62 - Sugar Skull Cats
+    {"canonical_name": "NeeDoh Sugar Skull Cats", "variant": None, "aliases": ["Sugar Skull Cats", "Sugar Skull", "Skull Cats NeeDoh"]},
+    # 63 - Cool Cane
+    {"canonical_name": "NeeDoh Cool Cane", "variant": None, "aliases": ["Cool Cane", "Candy Cane NeeDoh", "Christmas Cane"]},
+    # 64 - Golden Egg Hunt
+    {"canonical_name": "NeeDoh Golden Egg Hunt", "variant": None, "aliases": ["Golden Egg Hunt", "Egg Hunt", "Easter Egg Hunt NeeDoh"]},
+    # 65 - Nice Cube Glow
+    {"canonical_name": "NeeDoh Nice Cube Glow", "variant": None, "aliases": ["Nice Cube Glow", "Glitter Glow Cube", "Nice Cube Glitter"]},
+    # 66 - Color Change
+    {"canonical_name": "NeeDoh Color Change", "variant": None, "aliases": ["Color Change", "Colour Change", "Color Changing NeeDoh Ball"]},
+    # 67 - Stickums
+    {"canonical_name": "NeeDoh Stickums", "variant": None, "aliases": ["Stickums", "Nee Doh Stickums", "Sticky NeeDoh"]},
+    # 68 - Swirl
+    {"canonical_name": "NeeDoh Swirl", "variant": None, "aliases": ["NeeDoh Swirl", "Swirl Ball", "Nee Doh Swirl"]},
 ]
 
 STORES = [
@@ -187,6 +233,29 @@ SEARCH_TERMS = {
     43: "needoh+fuzz+ball+wonder+waves", # Fuzz Ball Wonder Waves
     44: "needoh+dohnut+jelly+squeeze", # Dohnut Jelly Squeeze
     45: "needoh+fuzz+ball+teenie", # Fuzz Ball Teenie
+    46: "needoh+groovy+shroom",  # Groovy Shroom
+    47: "needoh+squeezy+peezy",  # Squeezy Peezy
+    48: "needoh+happy+snappy",   # Happy Snappy
+    49: "needoh+squeeze+hearts", # Squeeze Hearts
+    50: "super+needoh+ripples",  # Super NeeDoh Ripples
+    51: "needoh+snow+globe",     # Snow Globe
+    52: "super+needoh+cool+cats", # Super Cool Cats
+    53: "needoh+fuzz+ball+flower+power", # Fuzz Ball Flower Power
+    54: "needoh+good+vibes+heart", # Good Vibes Only Heart
+    55: "needoh+fuzz+ball+wild+cats", # Fuzz Ball Wild Cats
+    56: "needoh+groovy+jewel",   # Groovy Jewel
+    57: "needoh+cloud+pleaser",  # Cloud Pleaser
+    58: "needoh+bubble+glob",    # Bubble Glob
+    59: "needoh+baby+boos",      # Baby Boos
+    60: "needoh+dohzee",         # Dohzee
+    61: "needoh+glowy+ghost",    # Glowy Ghost
+    62: "needoh+sugar+skull+cats", # Sugar Skull Cats
+    63: "needoh+cool+cane",      # Cool Cane
+    64: "needoh+golden+egg+hunt", # Golden Egg Hunt
+    65: "needoh+nice+cube+glow", # Nice Cube Glow
+    66: "needoh+color+change",   # Color Change
+    67: "needoh+stickums",       # Stickums
+    68: "needoh+swirl",          # Swirl
 }
 
 STORE_URL_TEMPLATES = {
