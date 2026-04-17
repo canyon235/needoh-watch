@@ -55,44 +55,47 @@ class NoonScraper(BaseScraper):
 
     def check_stock(self, url, product_name=None):
         """Check stock on Noon UAE.
-        Strategy: ScraperAPI (residential proxy) → direct mobile API → direct web API → UNKNOWN
+        Strategy: ScraperAPI search (residential proxy) → direct mobile API → direct web API → UNKNOWN
         Noon blocks ALL cloud IPs (Render, Cloudflare, Vercel, AWS).
         ScraperAPI uses residential proxies that Noon cannot block.
-        """
-        if 'search' in url or 'q=' in url:
-            # Try ScraperAPI first (most reliable — uses residential proxies)
-            if SCRAPER_API_KEY:
-                result = self._scraperapi_search(url, product_name)
-                if result and result.status != 'UNKNOWN':
-                    return result
 
-            # Try direct mobile API (works from non-datacenter IPs)
+        IMPORTANT: Always try ScraperAPI search first, even for product page URLs.
+        Product page URLs don't work from datacenter IPs, but ScraperAPI search
+        by product name always works and returns prices reliably.
+        """
+        # Always try ScraperAPI search first — works for ANY URL type
+        # This is the most reliable method and always returns prices
+        if SCRAPER_API_KEY and product_name:
+            search_url = url if ('search' in url or 'q=' in url) else \
+                f"https://www.noon.com/uae-en/search/?q={quote_plus(product_name)}"
+            result = self._scraperapi_search(search_url, product_name)
+            if result and result.status != 'UNKNOWN':
+                return result
+
+        # Fallback: try direct mobile API (only works from non-datacenter IPs)
+        if 'search' in url or 'q=' in url:
             result = self._mobile_api_search(url, product_name)
             if result and result.status != 'UNKNOWN':
                 return result
 
-            # Try web API as fallback
+            # Try web API as last resort
             result = self._web_api_search(url, product_name)
             if result and result.status != 'UNKNOWN':
                 return result
 
-            # All methods failed
-            hint = ""
-            if not SCRAPER_API_KEY:
-                hint = " Set SCRAPER_API_KEY env var to enable residential proxy."
-            return ScrapingResult(
-                status='UNKNOWN',
-                error=f'Noon blocks server access (all cloud IPs blocked).{hint}',
-                url=url
-            )
+        # For product page URLs, try direct product page check
+        if '/search' not in url and 'q=' not in url:
+            result = self._check_product_page(url, product_name)
+            if result and result.status != 'UNKNOWN':
+                return result
 
-        # For non-search URLs, try product page
-        if '/search' not in url:
-            return self._check_product_page(url, product_name)
-
+        # All methods failed
+        hint = ""
+        if not SCRAPER_API_KEY:
+            hint = " Set SCRAPER_API_KEY env var to enable residential proxy."
         return ScrapingResult(
             status='UNKNOWN',
-            error='Noon API unreachable',
+            error=f'Noon blocks server access (all cloud IPs blocked).{hint}',
             url=url
         )
 

@@ -12,11 +12,11 @@ PRODUCTS = [
     # 0 - Classic
     {"canonical_name": "NeeDoh Classic", "variant": "Groovy Glob", "aliases": ["NeeDoh Groovy Glob", "Nee Doh", "NeeDoh Original", "Schylling NeeDoh", "Groovy Glob"]},
     # 1 - Nice Cube
-    {"canonical_name": "NeeDoh Nice Cube", "variant": None, "aliases": ["Nice Cube", "Nice Ice Baby", "Schylling Nice Cube", "Nee Doh Nice Cube"]},
+    {"canonical_name": "NeeDoh Nice Cube", "variant": None, "aliases": ["Nice Cube", "Schylling Nice Cube", "Nee Doh Nice Cube"]},
     # 2 - Gummy Bear
     {"canonical_name": "NeeDoh Gummy Bear", "variant": None, "aliases": ["Gummy Bear NeeDoh", "Schylling Gummy Bear", "Nee Doh Gummy Bear"]},
     # 3 - Cool Cats
-    {"canonical_name": "NeeDoh Cool Cats", "variant": None, "aliases": ["Cool Cats NeeDoh", "Schylling Cool Cats", "Nee Doh Cool Cats", "Super NeeDoh Cool Cats"]},
+    {"canonical_name": "NeeDoh Cool Cats", "variant": None, "aliases": ["Cool Cats NeeDoh", "Schylling Cool Cats", "Nee Doh Cool Cats"]},
     # 4 - Gumdrop
     {"canonical_name": "NeeDoh Gumdrop", "variant": None, "aliases": ["Gumdrop NeeDoh", "Schylling Gumdrop", "Textured Gumdrop"]},
     # 5 - Dream Drop
@@ -30,7 +30,7 @@ PRODUCTS = [
     # 9 - Shaggy
     {"canonical_name": "NeeDoh Shaggy", "variant": None, "aliases": ["Shaggy NeeDoh", "Shaggy Groovy Glob", "Nee Doh Shaggy"]},
     # 10 - Fuzz Ball
-    {"canonical_name": "NeeDoh Fuzz Ball", "variant": None, "aliases": ["Fuzz Ball", "Nee Doh Fuzz Ball", "Needoh Fuzzball", "Teenie Fuzz Ball"]},
+    {"canonical_name": "NeeDoh Fuzz Ball", "variant": None, "aliases": ["Fuzz Ball", "Nee Doh Fuzz Ball", "Needoh Fuzzball"]},
     # 11 - Stardust
     {"canonical_name": "NeeDoh Stardust", "variant": None, "aliases": ["Stardust NeeDoh", "Stardust Shimmer", "Nee Doh Stardust"]},
     # 12 - Crystal
@@ -47,7 +47,7 @@ PRODUCTS = [
     {"canonical_name": "NeeDoh Dohnuts", "variant": None, "aliases": ["Dohnuts", "Jelly Donut NeeDoh", "Nee Doh Dohnuts", "Needoh Donuts", "Dohnut Holes"]},
     # 18 - Nice-Sicle
     {"canonical_name": "NeeDoh Nice-Sicle", "variant": None, "aliases": ["Nice-Sicle", "Nice Sicle NeeDoh", "Nee Doh Popsicle"]},
-    # 19 - Color Change Cube
+    # 19 - Color Change Cube (DUPLICATE of #66, removed via migration)
     {"canonical_name": "NeeDoh Color Change Cube", "variant": None, "aliases": ["Color Change Cube", "Colour Changing Cube", "Color Changing NeeDoh"]},
     # 20 - Dohjees
     {"canonical_name": "NeeDoh Dohjees", "variant": None, "aliases": ["Dohjees", "NeeDoh Collectible", "Nee Doh Dohjees"]},

@@ -227,7 +227,11 @@ def get_listings_due_for_check():
             WHERE l.last_checked_at IS NULL
                OR (julianday('now') - julianday(l.last_checked_at)) * 24 * 60
                   >= s.check_interval_minutes
-            ORDER BY l.last_checked_at ASC NULLS FIRST
+               OR (l.stock_status = 'IN_STOCK' AND l.last_price IS NULL
+                   AND (julianday('now') - julianday(l.last_checked_at)) * 24 * 60 >= 2)
+            ORDER BY
+                CASE WHEN l.stock_status = 'IN_STOCK' AND l.last_price IS NULL THEN 0 ELSE 1 END,
+                l.last_checked_at ASC NULLS FIRST
         """).fetchall()
 
 
