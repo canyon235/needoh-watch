@@ -63,8 +63,8 @@ class StockChecker:
 
     def _check_one_with_timeout(self, listing, timeout=60):
         """Run _check_one with a hard timeout to prevent hung requests from blocking the cycle."""
-        store_name = listing.get('store_name', '?')
-        product_name = listing.get('canonical_name', '?')
+        store_name = listing['store_name'] if 'store_name' in listing.keys() else '?'
+        product_name = listing['canonical_name'] if 'canonical_name' in listing.keys() else '?'
 
         result = [None]
         error = [None]
