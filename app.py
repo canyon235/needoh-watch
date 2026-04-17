@@ -1341,7 +1341,8 @@ function renderProducts(products) {
                 }
                 // Buy icon — only show when in stock with a valid URL
                 let buyIcon = '';
-                if (sl.stock_status === 'IN_STOCK' && sl.url) {
+                const isSearchUrl = sl.url && (sl.url.includes('/search?') || sl.url.includes('/s?k=') || sl.url.includes('/sr?q='));
+                if (sl.stock_status === 'IN_STOCK' && sl.url && !isSearchUrl) {
                     buyIcon = `<a href="${sl.url}" target="_blank" rel="noopener" class="buy-icon-link" title="Buy from ${storeShort}">🛒</a>`;
                 }
                 const icon = storeIcon(sl.store_name);

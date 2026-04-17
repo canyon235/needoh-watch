@@ -250,7 +250,7 @@ def update_listing_status(listing_id, status, price=None, raw_text=None, seller=
                 last_price = COALESCE(?, last_price),
                 raw_text = COALESCE(?, raw_text),
                 seller_name = COALESCE(?, seller_name),
-                url = CASE WHEN ? IS NOT NULL AND ? NOT LIKE '%/s?k=%' AND ? NOT LIKE '%/search?q=%' AND ? NOT LIKE '%/sr?q=%' THEN ? ELSE url END,
+                url = CASE WHEN ? IS NOT NULL AND ? NOT LIKE '%/s?k=%' AND ? NOT LIKE '%/search?q=%' AND ? NOT LIKE '%/search?query=%' AND ? NOT LIKE '%/sr?q=%' THEN ? ELSE url END,
                 last_checked_at = ?,
                 last_changed_at = CASE WHEN ? THEN ? ELSE last_changed_at END,
                 check_count = check_count + 1,
@@ -259,7 +259,7 @@ def update_listing_status(listing_id, status, price=None, raw_text=None, seller=
                 delivery_estimate = COALESCE(?, delivery_estimate)
             WHERE id = ?
         """, (status, previous_status, price, raw_text, seller,
-              product_url, product_url, product_url, product_url, product_url,
+              product_url, product_url, product_url, product_url, product_url, product_url,
               now, changed, now, error, error, delivery_estimate, listing_id))
         return {'changed': changed, 'previous_status': previous_status, 'new_status': status,
                 'old_price': old['last_price'] if old else None, 'new_price': price}
