@@ -100,6 +100,7 @@ class NoonScraper(BaseScraper):
         """Use ScraperAPI (residential proxies) to reach Noon's catalog API.
         Noon blocks ALL cloud/datacenter IPs. ScraperAPI routes through
         residential IPs that Noon cannot distinguish from real users.
+        Retries up to 2 times on 499 errors (ScraperAPI timeout/rate limit).
         """
         try:
             query = re.search(r'[?&]q=([^&]+)', url)
@@ -114,10 +115,20 @@ class NoonScraper(BaseScraper):
             # Build the Noon API URL
             api_url = f"{self.api_base}search/?q={search_term}&locale=en-ae&limit=20"
 
-            # Route through ScraperAPI
+            # Route through ScraperAPI — retry on 499 (timeout/rate limit on free tier)
             scraper_url = f"https://api.scraperapi.com/?api_key={SCRAPER_API_KEY}&url={quote_plus(api_url)}"
 
-            response = requests.get(scraper_url, timeout=60)
+            max_retries = 2
+            response = None
+            for attempt in range(max_retries + 1):
+                response = requests.get(scraper_url, timeout=70)
+                if response.status_code == 499 and attempt < max_retries:
+                    wait = 3 + attempt * 2  # 3s, 5s
+                    print(f"  Noon ScraperAPI 499 — retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait)
+                    continue
+                break
+
             if response.status_code != 200:
                 print(f"  Noon ScraperAPI returned {response.status_code}")
                 return None
