@@ -616,11 +616,12 @@ DASHBOARD_HTML = r"""
         }
 
         .store-price-row .store-icon {
-            font-size: 14px;
-            margin-right: 4px;
-            display: inline-block;
-            width: 18px;
-            text-align: center;
+            width: 16px;
+            height: 16px;
+            margin-right: 5px;
+            vertical-align: middle;
+            border-radius: 3px;
+            object-fit: contain;
         }
 
         .notify-inline {
@@ -1285,21 +1286,24 @@ function renderProducts(products) {
         }
 
         // Build per-store price rows — sort: Amazon, Noon, Desertcart, Ubuy, Virgin, others
-        const storeOrder = {'Amazon': 1, 'Amazon.ae': 1, 'Noon': 2, 'Noon UAE': 2, 'Desertcart': 3, 'Ubuy': 4, 'Virgin': 5, 'Virgin Megastore UAE': 5};
+        const storeOrder = {'Amazon': 1, 'Amazon.ae': 1, 'Noon': 2, 'Noon UAE': 2, 'Desertcart': 3, 'Ubuy': 4};
         const storeListings = (p.store_listings || []).slice().sort((a, b) => {
             const aKey = Object.keys(storeOrder).find(k => a.store_name.includes(k)) || a.store_name;
             const bKey = Object.keys(storeOrder).find(k => b.store_name.includes(k)) || b.store_name;
             return (storeOrder[aKey] || 99) - (storeOrder[bKey] || 99);
         });
 
-        // Store icons map
+        // Store logo URLs
+        const storeLogos = {
+            'Amazon': 'https://www.amazon.ae/favicon.ico',
+            'Noon': 'https://f.nooncdn.com/s/app/com/common/images/favicons/favicon-32x32.png',
+            'Desertcart': 'https://www.desertcart.ae/favicon.ico',
+            'Ubuy': 'https://www.ubuy.ae/favicon.ico',
+        };
         function storeIcon(name) {
-            if (name.includes('Amazon')) return '🅰️';
-            if (name.includes('Noon')) return '🌙';
-            if (name.includes('Desertcart')) return '🏜️';
-            if (name.includes('Ubuy')) return '🛍️';
-            if (name.includes('Virgin')) return '🔴';
-            return '🏪';
+            const key = Object.keys(storeLogos).find(k => name.includes(k));
+            if (key) return `<img src="${storeLogos[key]}" class="store-icon" alt="${key}">`;
+            return '';
         }
 
         let storePricesHtml = '';
@@ -1319,7 +1323,7 @@ function renderProducts(products) {
                 }
                 const icon = storeIcon(sl.store_name);
                 return `<div class="store-price-row">
-                    <span class="store-label"><span class="store-icon">${icon}</span>${storeShort}</span>
+                    <span class="store-label">${icon}${storeShort}</span>
                     <span class="delivery-info">${deliveryShort}</span>
                     <span class="store-price-val">${price} ${buyIcon}</span>
                 </div>`;
