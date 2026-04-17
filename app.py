@@ -349,12 +349,40 @@ def self_ping():
 
 def background_checker(interval=180):
     """Run stock checks in background.
-    Uses short intervals (3 min) with batch limits to steadily process all products.
+    On startup: runs an aggressive initial sweep (100 listings/batch, 30s interval)
+    to quickly populate all products. Then switches to normal mode (20/batch, 3 min).
     Also self-pings to prevent Render free tier from spinning down the instance.
     """
     global bg_running
     bg_running = True
-    print(f"🔄 Background checker started (interval: {interval}s)")
+
+    # --- Initial sweep: check all listings fast after deploy/restart ---
+    print(f"🚀 Initial sweep: checking all listings quickly...", flush=True)
+    sweep_done = False
+    sweep_cycles = 0
+    while bg_running and not sweep_done:
+        try:
+            checker.reset_stats()
+            stats = checker.run_check_cycle(max_listings=100)  # Big batches
+            sweep_cycles += 1
+            checked = stats['checks']
+            print(f"  ⚡ Sweep #{sweep_cycles}: {checked} checked, {stats['changes']} changes, {stats['errors']} errors", flush=True)
+            if checked == 0:
+                sweep_done = True  # No more listings due
+        except Exception as e:
+            print(f"  ✗ Sweep error: {e}", flush=True)
+            sweep_done = True  # Don't loop forever on errors
+
+        if not sweep_done:
+            for _ in range(30):  # 30s between sweep batches
+                if not bg_running:
+                    break
+                time.sleep(1)
+
+    print(f"✅ Initial sweep complete after {sweep_cycles} cycles. Switching to normal mode.", flush=True)
+
+    # --- Normal mode: steady checks ---
+    print(f"🔄 Background checker running (interval: {interval}s)", flush=True)
     ping_counter = 0
     while bg_running:
         try:
@@ -1499,6 +1527,10 @@ function renderProducts(products) {
         // Count in-stock only from visible stores (not hidden ones like Desertcart)
         const inStock = storeListings.filter(sl => sl.stock_status === 'IN_STOCK').length;
 
+        // Determine overall status
+        const outOfStock = storeListings.filter(sl => sl.stock_status === 'OUT_OF_STOCK').length;
+        const allUnknown = storeListings.length > 0 && storeListings.every(sl => sl.stock_status === 'UNKNOWN');
+
         let statusClass, statusText;
         if (inStock > 0) {
             statusClass = 'status-available';
@@ -1506,6 +1538,9 @@ function renderProducts(products) {
         } else if (!p.last_check) {
             statusClass = 'status-checking';
             statusText = '⏳ CHECKING...';
+        } else if (allUnknown) {
+            statusClass = 'status-checking';
+            statusText = '🔍 NOT LISTED';
         } else {
             statusClass = 'status-out-of-stock';
             statusText = '❌ OUT OF STOCK';
