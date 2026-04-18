@@ -109,10 +109,11 @@ class ResendEmailChannel:
             return False
 
         subject = subject or "🔔 NeeDoh Watch Alert"
-        # Build unsubscribe URL using the recipient's email
+        # Build unsubscribe URL using the recipient's email (URL-encoded)
+        from urllib.parse import quote
         recipient_email = recipients[0] if recipients else ''
         base_url = os.getenv('APP_URL', 'https://needoh-watch.onrender.com')
-        unsubscribe_url = f"{base_url}/unsubscribe?email={recipient_email}"
+        unsubscribe_url = f"{base_url}/unsubscribe?email={quote(recipient_email)}"
         html = self._message_to_html(message, subject, unsubscribe_url)
 
         try:

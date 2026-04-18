@@ -292,6 +292,8 @@ def api_diagnostics():
 @app.route('/admin/stats')
 def admin_stats():
     """Hidden visitor analytics page — not linked from anywhere."""
+    import html as html_escape
+    esc = html_escape.escape
     with get_db() as conn:
         # Total views
         total = conn.execute("SELECT COUNT(*) as c FROM page_views").fetchone()['c']
@@ -352,12 +354,12 @@ tr:hover {{ background: #f8f8ff; }}
 
 <h2>Top Referrers (Last 7 Days)</h2>
 <table><tr><th>Referrer</th><th>Count</th></tr>
-{''.join(f"<tr><td class='small'>{dict(r)['referrer']}</td><td>{dict(r)['c']}</td></tr>" for r in referrers) if referrers else '<tr><td colspan="2">No referrers yet</td></tr>'}
+{''.join(f"<tr><td class='small'>{esc(dict(r)['referrer'])}</td><td>{dict(r)['c']}</td></tr>" for r in referrers) if referrers else '<tr><td colspan="2">No referrers yet</td></tr>'}
 </table>
 
 <h2>Recent Visitors</h2>
 <table><tr><th>Time</th><th>IP</th><th>User Agent</th></tr>
-{''.join(f"<tr><td>{dict(v)['visited_at']}</td><td>{dict(v)['ip']}</td><td class='small'>{dict(v)['user_agent'][:60]}</td></tr>" for v in recent)}
+{''.join(f"<tr><td>{esc(dict(v)['visited_at'] or '')}</td><td>{esc(dict(v)['ip'] or '')}</td><td class='small'>{esc((dict(v)['user_agent'] or '')[:60])}</td></tr>" for v in recent)}
 </table>
 
 <p style="color:#999; text-align:center; margin-top:40px;">This page is not linked anywhere. Only you know about it.</p>
