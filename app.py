@@ -63,6 +63,24 @@ def dashboard():
 
 # ─── API Endpoints ───
 
+@app.before_request
+def log_page_view():
+    """Invisibly log page views — only tracks actual page loads, not API calls or pings."""
+    path = request.path
+    # Only track real page views, not API calls, health pings, or static files
+    if path.startswith('/api/') or path.startswith('/admin/') or path.startswith('/static/'):
+        return
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO page_views (path, ip, user_agent, referrer) VALUES (?, ?, ?, ?)",
+                (path, request.remote_addr, str(request.user_agent)[:200],
+                 (request.referrer or '')[:200])
+            )
+    except Exception:
+        pass  # Never let analytics break the app
+
+
 @app.route('/api/health')
 def api_health():
     """Health check endpoint — also used for self-ping to keep Render alive."""
@@ -271,6 +289,82 @@ def api_diagnostics():
     return jsonify(diag)
 
 
+@app.route('/admin/stats')
+def admin_stats():
+    """Hidden visitor analytics page — not linked from anywhere."""
+    with get_db() as conn:
+        # Total views
+        total = conn.execute("SELECT COUNT(*) as c FROM page_views").fetchone()['c']
+
+        # Today's views
+        today = conn.execute(
+            "SELECT COUNT(*) as c FROM page_views WHERE visited_at >= date('now')"
+        ).fetchone()['c']
+
+        # Views by day (last 30 days)
+        daily = conn.execute("""
+            SELECT date(visited_at) as day, COUNT(*) as views
+            FROM page_views WHERE visited_at >= date('now', '-30 days')
+            GROUP BY date(visited_at) ORDER BY day DESC
+        """).fetchall()
+
+        # Unique IPs today
+        unique_today = conn.execute(
+            "SELECT COUNT(DISTINCT ip) as c FROM page_views WHERE visited_at >= date('now')"
+        ).fetchone()['c']
+
+        # Top referrers
+        referrers = conn.execute("""
+            SELECT referrer, COUNT(*) as c FROM page_views
+            WHERE referrer != '' AND visited_at >= date('now', '-7 days')
+            GROUP BY referrer ORDER BY c DESC LIMIT 10
+        """).fetchall()
+
+        # Recent views (last 20)
+        recent = conn.execute("""
+            SELECT path, ip, user_agent, referrer, visited_at
+            FROM page_views ORDER BY visited_at DESC LIMIT 20
+        """).fetchall()
+
+    html = f"""<!DOCTYPE html>
+<html><head><title>NeeDoh Watch — Stats</title>
+<style>
+body {{ font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; color: #333; }}
+h1 {{ color: #667eea; }}
+.stat-box {{ display: inline-block; background: white; padding: 20px 30px; border-radius: 12px; margin: 10px 10px 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+.stat-box .num {{ font-size: 2em; font-weight: bold; color: #667eea; }}
+.stat-box .label {{ font-size: 0.85em; color: #888; }}
+table {{ width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0; }}
+th, td {{ text-align: left; padding: 10px 16px; border-bottom: 1px solid #eee; }}
+th {{ background: #667eea; color: white; }}
+tr:hover {{ background: #f8f8ff; }}
+.small {{ font-size: 0.8em; color: #999; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+</style></head><body>
+<h1>NeeDoh Watch — Visitor Stats</h1>
+<div class="stat-box"><div class="num">{total}</div><div class="label">Total Views</div></div>
+<div class="stat-box"><div class="num">{today}</div><div class="label">Today</div></div>
+<div class="stat-box"><div class="num">{unique_today}</div><div class="label">Unique IPs Today</div></div>
+
+<h2>Daily Views (Last 30 Days)</h2>
+<table><tr><th>Date</th><th>Views</th></tr>
+{''.join(f"<tr><td>{dict(d)['day']}</td><td>{dict(d)['views']}</td></tr>" for d in daily)}
+</table>
+
+<h2>Top Referrers (Last 7 Days)</h2>
+<table><tr><th>Referrer</th><th>Count</th></tr>
+{''.join(f"<tr><td class='small'>{dict(r)['referrer']}</td><td>{dict(r)['c']}</td></tr>" for r in referrers) if referrers else '<tr><td colspan="2">No referrers yet</td></tr>'}
+</table>
+
+<h2>Recent Visitors</h2>
+<table><tr><th>Time</th><th>IP</th><th>User Agent</th></tr>
+{''.join(f"<tr><td>{dict(v)['visited_at']}</td><td>{dict(v)['ip']}</td><td class='small'>{dict(v)['user_agent'][:60]}</td></tr>" for v in recent)}
+</table>
+
+<p style="color:#999; text-align:center; margin-top:40px;">This page is not linked anywhere. Only you know about it.</p>
+</body></html>"""
+    return html
+
+
 @app.route('/api/email-subscribe', methods=['POST'])
 def api_email_subscribe():
     """Subscribe email to product alerts."""
@@ -312,13 +406,16 @@ def api_test_email():
     if not email or '@' not in email:
         return jsonify({'error': 'Valid email address is required'}), 400
 
-    from notifications.notifier import EmailChannel
-    channel = EmailChannel()
-
-    if not channel.sender or not channel.password:
-        return jsonify({
-            'error': 'Email not configured on server. Set EMAIL_ENABLED, EMAIL_SENDER, EMAIL_PASSWORD env vars.'
-        }), 500
+    # Try Resend first, then fallback to SMTP
+    from notifications.notifier import ResendEmailChannel, EmailChannel
+    if os.getenv('RESEND_API_KEY'):
+        channel = ResendEmailChannel()
+    else:
+        channel = EmailChannel()
+        if not channel.sender or not channel.password:
+            return jsonify({
+                'error': 'Email not configured on server. Set RESEND_API_KEY env var.'
+            }), 500
 
     success = channel.send(
         email,
@@ -1291,8 +1388,9 @@ DASHBOARD_HTML = r"""
     </div>
 
     <div class="filter-bar">
-        <button class="filter-btn" id="filterAll" onclick="setFilter('all')">All Toys</button>
-        <button class="filter-btn" id="filterAvailable" onclick="setFilter('available')">Available Only</button>
+        <button class="filter-btn" id="filterAll" onclick="setFilter('all')">All</button>
+        <button class="filter-btn" id="filterAvailable" onclick="setFilter('available')">Available</button>
+        <button class="filter-btn" id="filterNew" onclick="setFilter('new')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">New In Stock</button>
         <select class="filter-select" id="productSelect" onchange="jumpToProduct(this.value)">
             <option value="">Jump to a toy...</option>
         </select>
@@ -1502,8 +1600,20 @@ function setFilter(filter) {
     currentFilter = filter;
     document.getElementById('filterAll').classList.toggle('active', filter === 'all');
     document.getElementById('filterAvailable').classList.toggle('active', filter === 'available');
+    document.getElementById('filterNew').classList.toggle('active', filter === 'new');
     document.getElementById('productSelect').value = '';
     applyFilter();
+}
+
+function isNewlyInStock(product) {
+    const activeStores = ['Amazon', 'Noon'];
+    const storeListings = (product.store_listings || []).filter(sl => activeStores.some(s => sl.store_name.includes(s)));
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    return storeListings.some(sl =>
+        sl.stock_status === 'IN_STOCK' &&
+        sl.previous_status && sl.previous_status !== 'IN_STOCK' &&
+        sl.last_changed_at && sl.last_changed_at >= oneDayAgo
+    );
 }
 
 function applyFilter() {
@@ -1514,10 +1624,12 @@ function applyFilter() {
             const storeListings = (p.store_listings || []).filter(sl => activeStores.some(s => sl.store_name.includes(s)));
             return storeListings.some(sl => sl.stock_status === 'IN_STOCK');
         });
+    } else if (currentFilter === 'new') {
+        filtered = allProducts.filter(p => isNewlyInStock(p));
     }
     renderProducts(filtered);
     const countEl = document.getElementById('filterCount');
-    if (currentFilter === 'available') {
+    if (currentFilter !== 'all') {
         countEl.textContent = `Showing ${filtered.length} of ${allProducts.length} toys`;
     } else {
         countEl.textContent = `${allProducts.length} toys`;
@@ -1531,6 +1643,7 @@ function jumpToProduct(val) {
         currentFilter = 'single';
         document.getElementById('filterAll').classList.remove('active');
         document.getElementById('filterAvailable').classList.remove('active');
+        document.getElementById('filterNew').classList.remove('active');
         renderProducts([product]);
         document.getElementById('filterCount').textContent = `Showing 1 of ${allProducts.length} toys`;
     }

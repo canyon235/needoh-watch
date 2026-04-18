@@ -1,14 +1,11 @@
 """
 Notification system for NeeDoh Watch.
-Supports email (SMTP) and WhatsApp (via Twilio).
+Supports email (via Resend API) and WhatsApp (via Twilio).
 Designed to be extensible for future channels.
 """
 
 import os
-import smtplib
 import json
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 
@@ -21,10 +18,15 @@ class Notifier:
 
     def _setup_channels(self):
         """Initialize enabled notification channels."""
-        # Email
-        if os.getenv('EMAIL_ENABLED', '').lower() == 'true':
+        # Resend email
+        if os.getenv('RESEND_API_KEY'):
+            self.channels.append(ResendEmailChannel())
+            print("  ✓ Email notifications enabled (Resend)")
+
+        # Legacy SMTP email (fallback)
+        elif os.getenv('EMAIL_ENABLED', '').lower() == 'true':
             self.channels.append(EmailChannel())
-            print("  ✓ Email notifications enabled")
+            print("  ✓ Email notifications enabled (SMTP)")
 
         # WhatsApp via Twilio
         if os.getenv('WHATSAPP_ENABLED', '').lower() == 'true':
@@ -78,12 +80,108 @@ class Notifier:
         self.send(user_id, message, subject=subject)
 
 
+class ResendEmailChannel:
+    """Email notification channel via Resend API."""
+
+    name = "Email (Resend)"
+
+    def __init__(self):
+        self.api_key = os.getenv('RESEND_API_KEY', '')
+        self.from_email = os.getenv('RESEND_FROM', 'NeeDoh Watch <onboarding@resend.dev>')
+        self.default_recipients = [
+            r.strip() for r in os.getenv('EMAIL_RECIPIENTS', '').split(',')
+            if r.strip()
+        ]
+
+    def send(self, user_id, message, subject=None):
+        """Send email via Resend API."""
+        if not self.api_key:
+            print("  ⚠ Resend not configured (missing RESEND_API_KEY)")
+            return False
+
+        # Determine recipient
+        recipients = self.default_recipients
+        if '@' in (user_id or ''):
+            recipients = [user_id]
+
+        if not recipients:
+            print("  ⚠ No email recipients configured")
+            return False
+
+        subject = subject or "🔔 NeeDoh Watch Alert"
+        html = self._message_to_html(message, subject)
+
+        try:
+            import requests
+            resp = requests.post(
+                'https://api.resend.com/emails',
+                headers={
+                    'Authorization': f'Bearer {self.api_key}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'from': self.from_email,
+                    'to': recipients,
+                    'subject': subject,
+                    'html': html,
+                    'text': message,
+                },
+                timeout=10,
+            )
+            if resp.status_code in (200, 201):
+                print(f"  ✓ Email sent via Resend to {', '.join(recipients)}")
+                return True
+            else:
+                print(f"  ✗ Resend API error ({resp.status_code}): {resp.text}")
+                return False
+        except Exception as e:
+            print(f"  ✗ Resend email send failed: {e}")
+            return False
+
+    def _message_to_html(self, message, subject):
+        """Convert plain text message to styled HTML email."""
+        lines = message.split('\n')
+        html_lines = []
+        for line in lines:
+            if line.startswith('─'):
+                html_lines.append('<hr style="border: 1px solid #e0e0e0;">')
+            elif line.startswith('•'):
+                html_lines.append(f'<li style="margin: 8px 0;">{line[1:].strip()}</li>')
+            else:
+                html_lines.append(f'<p style="margin: 4px 0;">{line}</p>')
+
+        body = '\n'.join(html_lines)
+
+        return f"""
+        <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        padding: 20px; border-radius: 12px 12px 0 0; color: white;">
+                <h2 style="margin: 0;">🎯 NeeDoh Watch</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">{subject}</p>
+            </div>
+            <div style="background: #fff; padding: 20px; border: 1px solid #e0e0e0;
+                        border-radius: 0 0 12px 12px;">
+                {body}
+            </div>
+            <p style="text-align: center; color: #999; font-size: 12px; margin-top: 16px;">
+                NeeDoh Watch UAE — Tracking NeeDoh availability across UAE stores
+            </p>
+        </body>
+        </html>
+        """
+
+
 class EmailChannel:
-    """Email notification channel via SMTP."""
+    """Legacy email notification channel via SMTP (fallback)."""
 
     name = "Email"
 
     def __init__(self):
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
         self.smtp_host = os.getenv('EMAIL_SMTP_HOST', 'smtp.gmail.com')
         self.smtp_port = int(os.getenv('EMAIL_SMTP_PORT', '587'))
         self.sender = os.getenv('EMAIL_SENDER', '')
@@ -95,6 +193,10 @@ class EmailChannel:
 
     def send(self, user_id, message, subject=None):
         """Send email notification."""
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
         if not self.sender or not self.password:
             print("  ⚠ Email not configured (missing sender/password)")
             return False

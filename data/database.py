@@ -142,6 +142,17 @@ def init_db():
                 FOREIGN KEY (listing_id) REFERENCES listings(id)
             );
 
+            CREATE TABLE IF NOT EXISTS page_views (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                path TEXT NOT NULL,
+                ip TEXT,
+                user_agent TEXT,
+                referrer TEXT,
+                country TEXT,
+                visited_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_page_views_visited ON page_views(visited_at);
             CREATE INDEX IF NOT EXISTS idx_listings_product ON listings(product_id);
             CREATE INDEX IF NOT EXISTS idx_listings_store ON listings(store_id);
             CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(stock_status);
@@ -247,7 +258,9 @@ def update_listing_status(listing_id, status, price=None, raw_text=None, seller=
         if status == 'UNKNOWN' and previous_status in ('IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'):
             status = previous_status  # Keep the last known good status
 
-        changed = previous_status != status
+        # Only count as "changed" if we had a previous definitive status
+        # This prevents false alerts on first check after deploy/DB reset
+        changed = (previous_status is not None and previous_status != status)
         conn.execute("""
             UPDATE listings SET
                 stock_status = ?, previous_status = ?,
@@ -408,7 +421,9 @@ def get_dashboard_data():
             pd = dict(p)
             # Get per-store listing details for this product
             listings = conn.execute("""
-                SELECT l.stock_status, l.last_price, l.url, l.delivery_estimate, s.name as store_name
+                SELECT l.stock_status, l.last_price, l.url, l.delivery_estimate,
+                       l.previous_status, l.last_changed_at,
+                       s.name as store_name
                 FROM listings l JOIN stores s ON l.store_id = s.id
                 WHERE l.product_id = ?
                 ORDER BY s.name
