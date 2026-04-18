@@ -321,6 +321,14 @@ def remove_subscription(user_id, product_id):
                      (user_id, product_id))
 
 
+def unsubscribe_email(email):
+    """Unsubscribe an email from all alerts."""
+    with get_db() as conn:
+        conn.execute("UPDATE subscriptions SET active = 0 WHERE user_id = ? OR notify_email = ?",
+                     (email, email))
+        return conn.execute("SELECT changes()").fetchone()[0]
+
+
 def add_sighting(product_id, store_id=None, store_name=None, mall_name=None,
                  city='Dubai', reporter_id=None, reporter_name=None,
                  photo_url=None, notes=None, source='user'):

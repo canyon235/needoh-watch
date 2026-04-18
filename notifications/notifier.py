@@ -109,7 +109,11 @@ class ResendEmailChannel:
             return False
 
         subject = subject or "🔔 NeeDoh Watch Alert"
-        html = self._message_to_html(message, subject)
+        # Build unsubscribe URL using the recipient's email
+        recipient_email = recipients[0] if recipients else ''
+        base_url = os.getenv('APP_URL', 'https://needoh-watch.onrender.com')
+        unsubscribe_url = f"{base_url}/unsubscribe?email={recipient_email}"
+        html = self._message_to_html(message, subject, unsubscribe_url)
 
         try:
             import requests
@@ -124,7 +128,7 @@ class ResendEmailChannel:
                     'to': recipients,
                     'subject': subject,
                     'html': html,
-                    'text': message,
+                    'text': message + f'\n\nUnsubscribe: {unsubscribe_url}',
                 },
                 timeout=10,
             )
@@ -138,7 +142,7 @@ class ResendEmailChannel:
             print(f"  ✗ Resend email send failed: {e}")
             return False
 
-    def _message_to_html(self, message, subject):
+    def _message_to_html(self, message, subject, unsubscribe_url=''):
         """Convert plain text message to styled HTML email."""
         lines = message.split('\n')
         html_lines = []
@@ -151,6 +155,10 @@ class ResendEmailChannel:
                 html_lines.append(f'<p style="margin: 4px 0;">{line}</p>')
 
         body = '\n'.join(html_lines)
+
+        unsub_html = ''
+        if unsubscribe_url:
+            unsub_html = f'<a href="{unsubscribe_url}" style="color: #999; text-decoration: underline;">Unsubscribe from alerts</a>'
 
         return f"""
         <html>
@@ -167,6 +175,7 @@ class ResendEmailChannel:
             </div>
             <p style="text-align: center; color: #999; font-size: 12px; margin-top: 16px;">
                 NeeDoh Watch UAE — Tracking NeeDoh availability across UAE stores
+                <br>{unsub_html}
             </p>
         </body>
         </html>

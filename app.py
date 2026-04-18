@@ -397,6 +397,29 @@ def api_email_subscribe():
     })
 
 
+@app.route('/unsubscribe')
+def unsubscribe_page():
+    """Unsubscribe from email alerts — linked from notification emails."""
+    email = request.args.get('email', '').strip().lower()
+    if not email or '@' not in email:
+        return '<html><body style="font-family:sans-serif;max-width:500px;margin:60px auto;text-align:center;"><h2>Invalid Link</h2><p>This unsubscribe link is invalid.</p></body></html>'
+
+    from data.database import unsubscribe_email
+    count = unsubscribe_email(email)
+
+    return f'''<html><body style="font-family:-apple-system,sans-serif;max-width:500px;margin:60px auto;text-align:center;">
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px;border-radius:12px;color:white;">
+        <h2 style="margin:0;">NeeDoh Watch UAE</h2>
+    </div>
+    <div style="padding:30px;">
+        <h3>Unsubscribed Successfully</h3>
+        <p><strong>{email}</strong> has been removed from all stock alerts.</p>
+        <p style="color:#888;font-size:14px;">You will no longer receive email notifications.</p>
+        <a href="/" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#667eea;color:white;text-decoration:none;border-radius:8px;">Back to NeeDoh Watch</a>
+    </div>
+    </body></html>'''
+
+
 @app.route('/api/test-email', methods=['POST'])
 def api_test_email():
     """Send a test email to verify email notifications work."""
